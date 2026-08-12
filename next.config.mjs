@@ -11,6 +11,7 @@ const nextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/merge": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/extract": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
 };
 

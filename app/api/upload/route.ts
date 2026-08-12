@@ -14,8 +14,10 @@ const SHARE_ID_RE =
  * pass through this function (which also keeps us clear of Vercel's 4.5 MB
  * request body limit).
  *
- * Two destinations:
- * - no shareId: an MP4 bound for the merger, under uploads/
+ * Destinations:
+ * - no shareId: a file bound for server-side processing, under uploads/ —
+ *   an MP4 for the merger (default) or an MP3 for the clip extractor
+ *   (kind: "audio")
  * - shareId (a client-generated UUID acting as the share's secret): any file
  *   type, under shares/<id>/, served later via presigned links
  *
@@ -38,13 +40,18 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   let filename = "file";
   let shareId: string | null = null;
+  let kind: "video" | "audio" = "video";
   try {
     const body = (await request.json()) as {
       filename?: unknown;
       shareId?: unknown;
+      kind?: unknown;
     };
     if (typeof body.filename === "string" && body.filename.trim()) {
       filename = body.filename;
+    }
+    if (body.kind === "audio") {
+      kind = "audio";
     }
     if (typeof body.shareId === "string") {
       if (!SHARE_ID_RE.test(body.shareId)) {
@@ -71,7 +78,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         : {
             token,
             pathname: `${UPLOAD_PREFIX}${safeName}`,
-            allowedContentTypes: ["video/mp4"],
+            allowedContentTypes:
+              kind === "audio"
+                ? ["audio/mpeg", "audio/mp3"]
+                : ["video/mp4"],
             maximumSizeInBytes: MAX_FILE_BYTES,
             addRandomSuffix: true,
             validUntil: Date.now() + 15 * 60 * 1000,

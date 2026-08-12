@@ -8,6 +8,10 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    `/share/<id>` link to hand out. The ID is an unguessable secret, the
    download URLs behind it are cryptographically presigned, and after
    5 minutes the signatures expire and the files are deleted.
+3. **MP3 clip extractor** — upload an MP3, give a start point and duration,
+   and get just that section back as a new MP3 (lossless frame copy when
+   possible, re-encode fallback). The source is deleted the moment
+   extraction finishes and the clip self-destructs after 5 minutes.
 
 ## How it works
 

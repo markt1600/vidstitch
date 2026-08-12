@@ -14,6 +14,23 @@ export function formatCountdown(ms: number): string {
 }
 
 /**
+ * Parses "90", "23.5", "1:30", or "1:02:30.5" into seconds.
+ * Returns null when the input isn't a valid time.
+ */
+export function parseTimecode(input: string): number | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(":");
+  if (parts.length > 3) return null;
+  let total = 0;
+  for (const part of parts) {
+    if (!/^\d+(\.\d+)?$/.test(part)) return null;
+    total = total * 60 + parseFloat(part);
+  }
+  return total;
+}
+
+/**
  * When an upload fails, check whether the browser can reach Vercel's blob
  * storage host at all. Ad blockers, privacy extensions, VPNs, and corporate
  * firewalls blocking *.vercel-storage.com are the most common cause of
@@ -42,7 +59,7 @@ async function diagnoseBlobConnectivity(): Promise<string | null> {
  */
 export async function uploadPrivate(
   file: File,
-  meta: { filename: string; shareId?: string },
+  meta: { filename: string; shareId?: string; kind?: "video" | "audio" },
 ): Promise<{ url: string; pathname: string }> {
   const tokenRes = await fetch("/api/upload", {
     method: "POST",

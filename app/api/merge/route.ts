@@ -1,12 +1,7 @@
-import { execFile } from "node:child_process";
-import { createWriteStream } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
-import { promisify } from "node:util";
-import { del, get, head, issueSignedToken, presignUrl, put } from "@vercel/blob";
+import { del, head, put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
@@ -17,40 +12,13 @@ import {
   MERGED_RETENTION_MS,
   UPLOAD_PREFIX,
 } from "@/lib/constants";
+import { downloadTo, presignedDownloadUrl, runFfmpeg } from "@/lib/ffmpeg";
 
 export const runtime = "nodejs";
 // Allow up to 5 minutes for download + concat + upload of large inputs.
 // Requires Fluid compute (the default on new Vercel projects); lower to 60
 // if your plan rejects it.
 export const maxDuration = 300;
-
-const execFileAsync = promisify(execFile);
-
-function ffmpegPath(): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const p = require("ffmpeg-static") as string | null;
-  if (!p) throw new Error("ffmpeg binary not found");
-  return p;
-}
-
-async function downloadTo(url: string, dest: string): Promise<void> {
-  // The store is private, so reads must be authenticated with the RW token.
-  const result = await get(url, { access: "private", token: blobToken() });
-  if (!result || !result.stream) {
-    throw new Error("Failed to fetch source video");
-  }
-  await pipeline(
-    Readable.fromWeb(result.stream as never),
-    createWriteStream(dest),
-  );
-}
-
-async function runFfmpeg(args: string[]): Promise<void> {
-  await execFileAsync(ffmpegPath(), args, {
-    maxBuffer: 32 * 1024 * 1024,
-    timeout: 280_000,
-  });
-}
 
 export async function POST(request: Request): Promise<NextResponse> {
   let urls: string[];
@@ -144,23 +112,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     // The merged blob is private, so hand the browser a presigned GET URL
     // whose signature expires at exactly the same moment the file does.
     const expiresAt = Date.now() + MERGED_RETENTION_MS;
-    const signed = await issueSignedToken({
-      token: blobToken(),
-      pathname: blob.pathname,
-      operations: ["get"],
-      validUntil: expiresAt,
-    });
-    const { presignedUrl } = await presignUrl(signed, {
-      operation: "get",
-      pathname: blob.pathname,
-      access: "private",
-    });
+    const downloadUrl = await presignedDownloadUrl(blob.pathname, expiresAt);
 
-    return NextResponse.json({
-      url: blob.url,
-      downloadUrl: presignedUrl,
-      expiresAt,
-    });
+    return NextResponse.json({ url: blob.url, downloadUrl, expiresAt });
   } catch (error) {
     // Privacy first: even on failure, the uploaded sources are deleted.
     await deleteSources();

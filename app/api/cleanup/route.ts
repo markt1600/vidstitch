@@ -2,7 +2,7 @@ import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
-import { MERGED_PREFIX } from "@/lib/constants";
+import { EXTRACT_PREFIX, MERGED_PREFIX } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,14 +17,17 @@ export async function GET(): Promise<NextResponse> {
 }
 
 /**
- * Immediate deletion of a specific merged file ("Delete now" button, or the
+ * Immediate deletion of a specific output file ("Delete now" button, or the
  * client's countdown reaching zero). Only files inside this app's own blob
- * store under merged/ can be targeted.
+ * store under merged/ or extracts/ can be targeted.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const { url } = (await request.json()) as { url?: unknown };
-    if (typeof url !== "string" || !isOwnBlobUrl(url, MERGED_PREFIX)) {
+    if (
+      typeof url !== "string" ||
+      (!isOwnBlobUrl(url, MERGED_PREFIX) && !isOwnBlobUrl(url, EXTRACT_PREFIX))
+    ) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
     await del(url, { token: blobToken() });

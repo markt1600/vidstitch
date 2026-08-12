@@ -323,6 +323,46 @@ h1 {
   font-size: 0.85rem;
 }
 
+.field-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.text-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  padding: 10px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field-hint {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
 .privacy-note {
   margin-top: 36px;
   border-top: 1px solid var(--border);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ExtractBox from "@/app/extract-box";
 import ShareBox from "@/app/share-box";
 import {
   formatBytes,
@@ -331,6 +332,8 @@ export default function Home() {
       {error && <div className="error-box">{error}</div>}
 
       <ShareBox />
+
+      <ExtractBox />
 
       <p className="privacy-note">
         <strong>Privacy:</strong> uploaded clips are deleted from the server as
