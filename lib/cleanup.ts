@@ -3,6 +3,8 @@ import { blobToken } from "./blob-token";
 import {
   MERGED_PREFIX,
   MERGED_RETENTION_MS,
+  SHARE_PREFIX,
+  SHARE_RETENTION_MS,
   UPLOAD_ORPHAN_MS,
   UPLOAD_PREFIX,
 } from "./constants";
@@ -35,6 +37,7 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
 
   for (const [prefix, maxAgeMs] of [
     [MERGED_PREFIX, MERGED_RETENTION_MS],
+    [SHARE_PREFIX, SHARE_RETENTION_MS],
     [UPLOAD_PREFIX, UPLOAD_ORPHAN_MS],
   ] as const) {
     let cursor: string | undefined;

@@ -1,7 +1,13 @@
 # VidStitch
 
-A single-purpose web app for Vercel: stitch 2–6 MP4 files into one merged MP4,
-with aggressive, multi-layered deletion so nothing lingers on the server.
+A privacy-first web app for Vercel with two features, both built on
+aggressive, multi-layered deletion so nothing lingers on the server:
+
+1. **MP4 merger** — stitch 2–6 MP4 files into one merged MP4.
+2. **Private file share** — upload up to 10 files of any type and get a
+   `/share/<id>` link to hand out. The ID is an unguessable secret, the
+   download URLs behind it are cryptographically presigned, and after
+   5 minutes the signatures expire and the files are deleted.
 
 ## How it works
 

@@ -289,6 +289,40 @@ h1 {
   font-size: 0.9rem;
 }
 
+.share-section {
+  margin-top: 44px;
+  border-top: 1px solid var(--border);
+  padding-top: 32px;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.share-link-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.88rem;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.btn-small {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
 .privacy-note {
   margin-top: 36px;
   border-top: 1px solid var(--border);
