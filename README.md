@@ -7,9 +7,13 @@ with aggressive, multi-layered deletion so nothing lingers on the server.
 
 1. The user selects up to 6 MP4 files (drag & drop or file picker), orders
    them, and clicks **Merge**.
-2. Files upload directly from the browser to Vercel Blob (client uploads via a
-   token from `/api/upload` — video bytes never pass through a serverless
-   function, which also avoids Vercel's 4.5 MB request body limit).
+2. Files upload directly from the browser to Vercel Blob. `/api/upload` mints
+   a short-lived client token scoped to one pathname, and the browser PUTs
+   the file with it — video bytes never pass through a serverless function,
+   which also avoids Vercel's 4.5 MB request body limit. (The SDK's
+   `handleUpload` webhook flow is deliberately not used: it requires the Blob
+   backend to call back into the app before acknowledging an upload, which
+   hangs uploads behind deployment protection or on localhost.)
 3. `/api/merge` downloads the clips to the function's `/tmp`, concatenates
    them with ffmpeg (lossless stream-copy first; falls back to re-encoding
    with H.264/AAC when the clips have mismatched codecs or resolutions),

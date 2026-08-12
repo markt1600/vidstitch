@@ -1,6 +1,6 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
+import { put } from "@vercel/blob/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MAX_FILES,
@@ -32,7 +32,8 @@ function formatCountdown(ms: number): string {
 export default function Home() {
   const [files, setFiles] = useState<File[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadIndex, setUploadIndex] = useState(0);
+  const [uploadCount, setUploadCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
@@ -128,20 +129,36 @@ export default function Home() {
     setError(null);
     setResult(null);
     setPhase("uploading");
-    setUploadProgress(0);
+    setUploadIndex(0);
+    setUploadCount(files.length);
 
     try {
       const urls: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const blob = await upload(`uploads/${file.name}`, file, {
+        setUploadIndex(i);
+
+        const tokenRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name }),
+        });
+        const tokenData = (await tokenRes.json()) as {
+          token?: string;
+          pathname?: string;
+          error?: string;
+        };
+        if (!tokenRes.ok || !tokenData.token || !tokenData.pathname) {
+          throw new Error(tokenData.error ?? "Could not get an upload token.");
+        }
+
+        // Plain (non-streaming) PUT with the scoped token; chunked multipart
+        // for larger files so a hiccup only retries one chunk.
+        const blob = await put(tokenData.pathname, file, {
           access: "public",
-          handleUploadUrl: "/api/upload",
-          onUploadProgress: ({ percentage }) => {
-            setUploadProgress(
-              Math.round(((i + percentage / 100) / files.length) * 100),
-            );
-          },
+          token: tokenData.token,
+          contentType: "video/mp4",
+          multipart: file.size > 20 * 1024 * 1024,
         });
         urls.push(blob.url);
       }
@@ -276,7 +293,7 @@ export default function Home() {
             disabled={busy || files.length < 2 || totalBytes > MAX_TOTAL_BYTES}
           >
             {phase === "uploading"
-              ? `Uploading… ${uploadProgress}%`
+              ? `Uploading file ${uploadIndex + 1} of ${uploadCount}…`
               : phase === "merging"
                 ? "Merging…"
                 : files.length < 2
@@ -288,14 +305,11 @@ export default function Home() {
             <div className="progress-wrap">
               <div className="progress-label">
                 {phase === "uploading"
-                  ? "Uploading your files…"
+                  ? `Uploading file ${uploadIndex + 1} of ${uploadCount}…`
                   : "Stitching videos together — this can take a minute…"}
               </div>
               <div className="progress-bar">
-                <div
-                  className={`progress-fill${phase === "merging" ? " indeterminate" : ""}`}
-                  style={{ width: `${phase === "uploading" ? uploadProgress : 100}%` }}
-                />
+                <div className="progress-fill indeterminate" style={{ width: "100%" }} />
               </div>
             </div>
           )}
