@@ -22,6 +22,27 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
+/**
+ * When an upload fails, check whether the browser can reach Vercel's blob
+ * storage host at all. Ad blockers, privacy extensions, VPNs, and corporate
+ * firewalls blocking *.vercel-storage.com are the most common cause of
+ * uploads that never complete. no-cors: any HTTP response (even 403) proves
+ * reachability; only a network-level failure rejects.
+ */
+async function diagnoseBlobConnectivity(): Promise<string | null> {
+  try {
+    await fetch("https://blob.vercel-storage.com/", {
+      method: "GET",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    return null;
+  } catch {
+    return "Diagnostic: your browser cannot reach blob.vercel-storage.com — an ad blocker, browser extension, VPN, or firewall is likely blocking uploads. Try disabling extensions (or an incognito window with extensions off), or a different network/browser.";
+  }
+}
+
 function formatCountdown(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000));
   const m = Math.floor(total / 60);
@@ -153,14 +174,32 @@ export default function Home() {
         }
 
         // Plain (non-streaming) PUT with the scoped token; chunked multipart
-        // for larger files so a hiccup only retries one chunk.
-        const blob = await put(tokenData.pathname, file, {
-          access: "public",
-          token: tokenData.token,
-          contentType: "video/mp4",
-          multipart: file.size > 20 * 1024 * 1024,
-        });
-        urls.push(blob.url);
+        // for larger files so a hiccup only retries one chunk. The timeout
+        // turns a silently hanging connection into a visible error.
+        const controller = new AbortController();
+        const timeoutMs =
+          120_000 + Math.ceil(file.size / (1024 * 1024)) * 3_000;
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const blob = await put(tokenData.pathname, file, {
+            access: "public",
+            token: tokenData.token,
+            contentType: "video/mp4",
+            multipart: file.size > 20 * 1024 * 1024,
+            abortSignal: controller.signal,
+          });
+          urls.push(blob.url);
+        } catch (err) {
+          console.error("Upload failed:", err);
+          const timedOut = controller.signal.aborted;
+          const diag = await diagnoseBlobConnectivity();
+          const base = timedOut
+            ? `Uploading "${file.name}" timed out.`
+            : `Uploading "${file.name}" failed: ${err instanceof Error ? err.message : "unknown error"}.`;
+          throw new Error(diag ? `${base} ${diag}` : base);
+        } finally {
+          clearTimeout(timer);
+        }
       }
 
       setPhase("merging");
