@@ -1,6 +1,6 @@
-# VidStitch
+# VidStitch — File Utilities
 
-A privacy-first web app for Vercel with two features, both built on
+A privacy-first web app for Vercel (presented as "File Utilities"), built on
 aggressive, multi-layered deletion so nothing lingers on the server:
 
 1. **MP4 merger** — stitch 2–6 MP4 files into one merged MP4.

@@ -167,12 +167,22 @@ export default function Home() {
 
   return (
     <main>
-      <h1>VidStitch</h1>
+      <h1>File Utilities</h1>
       <p className="tagline">
-        Merge up to {MAX_FILES} MP4 files into one. Your originals are deleted
-        the moment the merge completes, and the merged file self-destructs
-        after 5 minutes.
+        Private, self-destructing tools for quick file jobs: stitch MP4 videos
+        into one, share files through an expiring private link, and cut a clip
+        out of an MP3. Everything you upload is stored privately, processed,
+        and permanently deleted within 5 minutes — no accounts, no records, no
+        copies.
       </p>
+
+      <section className="share-section">
+        <h2 className="section-title">Video stitcher</h2>
+        <p className="tagline">
+          Merge up to {MAX_FILES} MP4 files into one. Your originals are
+          deleted the moment the merge completes, and the merged file
+          self-destructs after 5 minutes.
+        </p>
 
       {(phase === "idle" || busy) && (
         <>
@@ -330,6 +340,7 @@ export default function Home() {
       )}
 
       {error && <div className="error-box">{error}</div>}
+      </section>
 
       <ShareBox />
 
