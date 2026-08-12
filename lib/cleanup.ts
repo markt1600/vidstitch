@@ -19,7 +19,7 @@ export function isOwnBlobUrl(rawUrl: string, requiredPrefix: string): boolean {
     return false;
   }
   if (url.protocol !== "https:") return false;
-  if (!url.hostname.endsWith(".public.blob.vercel-storage.com")) return false;
+  if (!url.hostname.endsWith(".blob.vercel-storage.com")) return false;
   return url.pathname.startsWith(`/${requiredPrefix}`);
 }
 

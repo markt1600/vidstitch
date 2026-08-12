@@ -37,8 +37,11 @@ with aggressive, multi-layered deletion so nothing lingers on the server.
    (Storage → Create → Blob). This project's store is connected with the
    custom env var prefix `vidstitch2blob`, so the code reads
    `vidstitch2blob_READ_WRITE_TOKEN` (falling back to the SDK default
-   `BLOB_READ_WRITE_TOKEN`) — see `lib/blob-token.ts`. For local dev, pull
-   env vars with `vercel env pull .env`.
+   `BLOB_READ_WRITE_TOKEN`) — see `lib/blob-token.ts`. The store uses
+   **private access**: every blob is written with `access: "private"`, server
+   reads are authenticated, and the download link handed to the browser is a
+   presigned URL whose signature expires at the same moment the file is
+   deleted. For local dev, pull env vars with `vercel env pull .env`.
 3. Deploy. No other configuration is required.
 
 ### Notes and limits

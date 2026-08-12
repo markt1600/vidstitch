@@ -182,7 +182,7 @@ export default function Home() {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
           const blob = await put(tokenData.pathname, file, {
-            access: "public",
+            access: "private",
             token: tokenData.token,
             contentType: "video/mp4",
             multipart: file.size > 20 * 1024 * 1024,

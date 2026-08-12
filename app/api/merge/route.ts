@@ -6,7 +6,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
-import { del, put } from "@vercel/blob";
+import { del, get, head, issueSignedToken, presignUrl, put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
@@ -34,15 +34,15 @@ function ffmpegPath(): string {
 }
 
 async function downloadTo(url: string, dest: string): Promise<void> {
-  const res = await fetch(url);
-  if (!res.ok || !res.body) {
-    throw new Error(`Failed to fetch source video (${res.status})`);
+  // The store is private, so reads must be authenticated with the RW token.
+  const result = await get(url, { access: "private", token: blobToken() });
+  if (!result || !result.stream) {
+    throw new Error("Failed to fetch source video");
   }
-  const length = Number(res.headers.get("content-length") ?? 0);
-  if (length > MAX_TOTAL_BYTES_SERVER) {
-    throw new Error("Source video too large");
-  }
-  await pipeline(Readable.fromWeb(res.body as never), createWriteStream(dest));
+  await pipeline(
+    Readable.fromWeb(result.stream as never),
+    createWriteStream(dest),
+  );
 }
 
 async function runFfmpeg(args: string[]): Promise<void> {
@@ -87,8 +87,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Enforce the combined size cap before pulling anything onto /tmp.
     let total = 0;
     for (const url of urls) {
-      const head = await fetch(url, { method: "HEAD" });
-      total += Number(head.headers.get("content-length") ?? 0);
+      const meta = await head(url, { token: blobToken() });
+      total += meta.size;
     }
     if (total > MAX_TOTAL_BYTES_SERVER) {
       return NextResponse.json(
@@ -135,16 +135,31 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const merged = await readFile(output);
     const blob = await put(`${MERGED_PREFIX}merged.mp4`, merged, {
-      access: "public",
+      access: "private",
       contentType: "video/mp4",
       addRandomSuffix: true,
       token: blobToken(),
     });
 
+    // The merged blob is private, so hand the browser a presigned GET URL
+    // whose signature expires at exactly the same moment the file does.
+    const expiresAt = Date.now() + MERGED_RETENTION_MS;
+    const signed = await issueSignedToken({
+      token: blobToken(),
+      pathname: blob.pathname,
+      operations: ["get"],
+      validUntil: expiresAt,
+    });
+    const { presignedUrl } = await presignUrl(signed, {
+      operation: "get",
+      pathname: blob.pathname,
+      access: "private",
+    });
+
     return NextResponse.json({
       url: blob.url,
-      downloadUrl: blob.downloadUrl,
-      expiresAt: Date.now() + MERGED_RETENTION_MS,
+      downloadUrl: presignedUrl,
+      expiresAt,
     });
   } catch (error) {
     // Privacy first: even on failure, the uploaded sources are deleted.
