@@ -10,6 +10,16 @@ export const runtime = "nodejs";
  * which is also what keeps us clear of Vercel's 4.5 MB request body limit.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      {
+        error:
+          "Blob storage is not configured. In the Vercel dashboard, open this project's Storage tab, create a Blob store, connect it to the project, then redeploy.",
+      },
+      { status: 500 },
+    );
+  }
+
   const body = (await request.json()) as HandleUploadBody;
 
   try {
