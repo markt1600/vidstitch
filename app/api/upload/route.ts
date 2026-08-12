@@ -1,5 +1,6 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import { blobToken } from "@/lib/blob-token";
 import { MAX_FILE_BYTES, UPLOAD_PREFIX } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -10,11 +11,11 @@ export const runtime = "nodejs";
  * which is also what keeps us clear of Vercel's 4.5 MB request body limit.
  */
 export async function POST(request: Request): Promise<NextResponse> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!blobToken()) {
     return NextResponse.json(
       {
         error:
-          "Blob storage is not configured. In the Vercel dashboard, open this project's Storage tab, create a Blob store, connect it to the project, then redeploy.",
+          "Blob storage is not configured: vidstitch2blob_READ_WRITE_TOKEN is missing. Check the store connection in the Vercel dashboard, then redeploy.",
       },
       { status: 500 },
     );
@@ -24,6 +25,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const jsonResponse = await handleUpload({
+      token: blobToken(),
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {

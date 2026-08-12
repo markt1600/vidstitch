@@ -8,6 +8,7 @@ import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
 import { del, put } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
 import {
   MAX_FILES,
@@ -79,7 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const workDir = await mkdtemp(path.join(tmpdir(), "vidstitch-"));
   const deleteSources = async () => {
-    await Promise.allSettled(urls.map((u) => del(u)));
+    await Promise.allSettled(urls.map((u) => del(u, { token: blobToken() })));
   };
 
   try {
@@ -137,6 +138,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       access: "public",
       contentType: "video/mp4",
       addRandomSuffix: true,
+      token: blobToken(),
     });
 
     return NextResponse.json({

@@ -1,4 +1,5 @@
 import { del, list } from "@vercel/blob";
+import { blobToken } from "./blob-token";
 import {
   MERGED_PREFIX,
   MERGED_RETENTION_MS,
@@ -38,7 +39,7 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
   ] as const) {
     let cursor: string | undefined;
     do {
-      const page = await list({ prefix, cursor, limit: 1000 });
+      const page = await list({ prefix, cursor, limit: 1000, token: blobToken() });
       for (const blob of page.blobs) {
         if (now - new Date(blob.uploadedAt).getTime() > maxAgeMs) {
           expired.push(blob.url);
@@ -51,7 +52,7 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
   let deleted = 0;
   for (const url of expired) {
     try {
-      await del(url);
+      await del(url, { token: blobToken() });
       deleted++;
     } catch {
       // Leave it for the next sweep.

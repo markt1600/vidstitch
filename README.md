@@ -30,8 +30,11 @@ with aggressive, multi-layered deletion so nothing lingers on the server.
 1. Push this repo to GitHub and import it into Vercel (it is auto-detected as
    Next.js).
 2. In the Vercel dashboard, add a **Blob store** to the project
-   (Storage → Create → Blob). This injects `BLOB_READ_WRITE_TOKEN`
-   automatically. For local dev, pull it with `vercel env pull .env`.
+   (Storage → Create → Blob). This project's store is connected with the
+   custom env var prefix `vidstitch2blob`, so the code reads
+   `vidstitch2blob_READ_WRITE_TOKEN` (falling back to the SDK default
+   `BLOB_READ_WRITE_TOKEN`) — see `lib/blob-token.ts`. For local dev, pull
+   env vars with `vercel env pull .env`.
 3. Deploy. No other configuration is required.
 
 ### Notes and limits

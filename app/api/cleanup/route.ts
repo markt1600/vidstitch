@@ -1,5 +1,6 @@
 import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
+import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
 import { MERGED_PREFIX } from "@/lib/constants";
 
@@ -26,7 +27,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof url !== "string" || !isOwnBlobUrl(url, MERGED_PREFIX)) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
-    await del(url);
+    await del(url, { token: blobToken() });
     return NextResponse.json({ deleted: true });
   } catch {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
