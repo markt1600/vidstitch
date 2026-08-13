@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import CompressBox from "@/app/compress-box";
 import ExtractBox from "@/app/extract-box";
+import GifBox from "@/app/gif-box";
+import ImageBox from "@/app/image-box";
 import ShareBox from "@/app/share-box";
 import {
   formatBytes,
@@ -180,10 +183,11 @@ export default function Home() {
       <h1>File Utilities</h1>
       <p className="tagline">
         Private, self-destructing tools for quick file jobs: stitch MP4 videos
-        into one, share files through an expiring private link, and cut a clip
-        out of an MP3. Everything you upload is stored privately, processed,
-        and permanently deleted within 5 minutes — no accounts, no records, no
-        copies.
+        into one, compress a video to a target size, make GIFs, resize images
+        right in your browser, share files through an expiring (optionally
+        password-protected) private link, and cut clips out of MP3s.
+        Everything you upload is stored privately, processed, and permanently
+        deleted within 5 minutes — no accounts, no records, no copies.
       </p>
 
       <section className="share-section">
@@ -388,6 +392,12 @@ export default function Home() {
 
       {error && <div className="error-box">{error}</div>}
       </section>
+
+      <CompressBox />
+
+      <GifBox />
+
+      <ImageBox />
 
       <ShareBox />
 

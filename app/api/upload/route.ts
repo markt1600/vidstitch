@@ -1,7 +1,12 @@
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
-import { MAX_FILE_BYTES, SHARE_PREFIX, UPLOAD_PREFIX } from "@/lib/constants";
+import {
+  MAX_FILE_BYTES,
+  SHARE_PASSWORD_MARKER,
+  SHARE_PREFIX,
+  UPLOAD_PREFIX,
+} from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -62,7 +67,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch {
     // Fall through with defaults.
   }
-  const safeName = filename.replace(/[^\w.\- ]/g, "_").slice(-100) || "file";
+  let safeName = filename.replace(/[^\w.\- ]/g, "_").slice(-100) || "file";
+  // The password marker name is reserved for the share password hash.
+  if (safeName === SHARE_PASSWORD_MARKER) safeName = `_${safeName}`;
 
   try {
     const clientToken = await generateClientTokenFromReadWriteToken(

@@ -2,7 +2,7 @@ import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
-import { EXTRACT_PREFIX, MERGED_PREFIX } from "@/lib/constants";
+import { EXTRACT_PREFIX, MERGED_PREFIX, OUTPUT_PREFIX } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,7 +26,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const { url } = (await request.json()) as { url?: unknown };
     if (
       typeof url !== "string" ||
-      (!isOwnBlobUrl(url, MERGED_PREFIX) && !isOwnBlobUrl(url, EXTRACT_PREFIX))
+      (!isOwnBlobUrl(url, MERGED_PREFIX) &&
+        !isOwnBlobUrl(url, EXTRACT_PREFIX) &&
+        !isOwnBlobUrl(url, OUTPUT_PREFIX))
     ) {
       return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }

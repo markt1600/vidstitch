@@ -12,6 +12,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/merge": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/extract": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/compress": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/gif": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
 };
 

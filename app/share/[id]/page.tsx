@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { formatBytes, formatCountdown } from "@/lib/client-upload";
 
 interface ShareFile {
@@ -10,7 +10,7 @@ interface ShareFile {
   url: string;
 }
 
-type Phase = "loading" | "active" | "expired";
+type Phase = "loading" | "locked" | "active" | "expired";
 
 export default function SharePage() {
   const params = useParams<{ id: string }>();
@@ -19,32 +19,45 @@ export default function SharePage() {
   const [files, setFiles] = useState<ShareFile[]>([]);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
+  const [password, setPassword] = useState("");
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const load = useCallback(
+    async (pw?: string) => {
       try {
-        const res = await fetch(`/api/share?id=${id}`);
+        const res = await fetch(
+          `/api/share?id=${id}${pw ? `&pw=${encodeURIComponent(pw)}` : ""}`,
+        );
         const data = (await res.json()) as {
           files?: ShareFile[];
           expiresAt?: number;
+          passwordRequired?: boolean;
+          error?: string;
         };
-        if (cancelled) return;
+        if (res.status === 401 && data.passwordRequired) {
+          setPhase("locked");
+          setPwError(pw ? (data.error ?? "Wrong password.") : null);
+          return;
+        }
         if (!res.ok || !data.files || !data.expiresAt) {
           setPhase("expired");
           return;
         }
         setFiles(data.files);
         setExpiresAt(data.expiresAt);
+        setPwError(null);
         setPhase("active");
       } catch {
-        if (!cancelled) setPhase("expired");
+        setPhase("expired");
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (phase !== "active" || !expiresAt) return;
@@ -72,6 +85,43 @@ export default function SharePage() {
           <div className="progress-bar">
             <div className="progress-fill indeterminate" style={{ width: "100%" }} />
           </div>
+        </div>
+      )}
+
+      {phase === "locked" && (
+        <div className="result-card" style={{ borderColor: "var(--border)" }}>
+          <h2>This share is password-protected</h2>
+          <p className="result-note">
+            Enter the password the sender gave you to see the files.
+          </p>
+          <form
+            className="share-link-row"
+            style={{ justifyContent: "center" }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!password.trim() || checking) return;
+              setChecking(true);
+              await load(password.trim());
+              setChecking(false);
+            }}
+          >
+            <input
+              className="share-link-input"
+              type="password"
+              placeholder="Password"
+              value={password}
+              autoFocus
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              className="btn btn-secondary"
+              type="submit"
+              disabled={checking || !password.trim()}
+            >
+              {checking ? "Checking…" : "Unlock"}
+            </button>
+          </form>
+          {pwError && <div className="error-box">{pwError}</div>}
         </div>
       )}
 

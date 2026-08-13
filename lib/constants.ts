@@ -19,6 +19,12 @@ export const MAX_SHARE_FILES = 10;
 // MP3 clip extractor: how long an extracted clip lives.
 export const EXTRACT_RETENTION_MS = 5 * 60 * 1000;
 
+// Generic processed outputs (compressed videos, GIFs): same 5-minute life.
+export const OUTPUT_RETENTION_MS = 5 * 60 * 1000;
+
+// GIF maker bounds.
+export const MAX_GIF_SECONDS = 15;
+
 // Source uploads are deleted as soon as a merge finishes. This backstop
 // removes any upload whose merge never ran (e.g. the user closed the tab
 // between uploading and merging).
@@ -28,3 +34,7 @@ export const UPLOAD_PREFIX = "uploads/";
 export const MERGED_PREFIX = "merged/";
 export const SHARE_PREFIX = "shares/";
 export const EXTRACT_PREFIX = "extracts/";
+export const OUTPUT_PREFIX = "outputs/";
+
+// Name of the hidden marker blob that stores a share's password hash.
+export const SHARE_PASSWORD_MARKER = ".password";

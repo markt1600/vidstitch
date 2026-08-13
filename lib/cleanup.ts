@@ -5,6 +5,8 @@ import {
   EXTRACT_RETENTION_MS,
   MERGED_PREFIX,
   MERGED_RETENTION_MS,
+  OUTPUT_PREFIX,
+  OUTPUT_RETENTION_MS,
   SHARE_PREFIX,
   SHARE_RETENTION_MS,
   UPLOAD_ORPHAN_MS,
@@ -40,6 +42,7 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
   for (const [prefix, maxAgeMs] of [
     [MERGED_PREFIX, MERGED_RETENTION_MS],
     [EXTRACT_PREFIX, EXTRACT_RETENTION_MS],
+    [OUTPUT_PREFIX, OUTPUT_RETENTION_MS],
     [SHARE_PREFIX, SHARE_RETENTION_MS],
     [UPLOAD_PREFIX, UPLOAD_ORPHAN_MS],
   ] as const) {

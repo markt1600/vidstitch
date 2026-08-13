@@ -12,6 +12,16 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    and get just that section back as a new MP3 (lossless frame copy when
    possible, re-encode fallback). The source is deleted the moment
    extraction finishes and the clip self-destructs after 5 minutes.
+4. **Video compressor** — shrink an MP4 to fit a target size (1–190 MB)
+   with a two-pass H.264 encode at a bitrate computed from the duration.
+5. **GIF maker** — turn up to 15 s of an MP4 into an optimized GIF
+   (palettegen/paletteuse two-stage encode).
+6. **Image resizer** — resize/convert/compress images entirely in the
+   browser via canvas; the image is never uploaded at all.
+7. **Share passwords** — a share can optionally require a password:
+   a salted SHA-256 hash is stored as a hidden `.password` marker blob
+   inside the share folder (inheriting its deletion lifecycle), and the
+   share API refuses to mint presigned URLs without the matching password.
 
 ## How it works
 

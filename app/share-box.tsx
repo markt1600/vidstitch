@@ -16,6 +16,8 @@ export default function ShareBox() {
   const [uploadIndex, setUploadIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [protectedShare, setProtectedShare] = useState(false);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -93,6 +95,7 @@ export default function ShareBox() {
     setUploadIndex(0);
 
     const id = crypto.randomUUID();
+    const pw = password.trim();
     try {
       for (let i = 0; i < files.length; i++) {
         setUploadIndex(i);
@@ -101,14 +104,28 @@ export default function ShareBox() {
           shareId: id,
         });
       }
-      const res = await fetch(`/api/share?id=${id}`);
+      if (pw) {
+        const pwRes = await fetch("/api/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, password: pw }),
+        });
+        if (!pwRes.ok) {
+          throw new Error("Could not set the password on the share.");
+        }
+      }
+      const res = await fetch(
+        `/api/share?id=${id}${pw ? `&pw=${encodeURIComponent(pw)}` : ""}`,
+      );
       const data = (await res.json()) as { expiresAt?: number; error?: string };
       if (!res.ok || !data.expiresAt) {
         throw new Error(data.error ?? "Could not create the share link.");
       }
       setShareId(id);
+      setProtectedShare(Boolean(pw));
       setExpiresAt(data.expiresAt);
       setFiles([]);
+      setPassword("");
       setPhase("done");
       setCopied(false);
     } catch (err) {
@@ -210,6 +227,25 @@ export default function ShareBox() {
             </>
           )}
 
+          <div className="field-row">
+            <label className="field">
+              <span className="field-label">Password (optional)</span>
+              <input
+                className="text-input"
+                type="password"
+                placeholder="Leave empty for no password"
+                value={password}
+                disabled={busy}
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          </div>
+          <p className="field-hint">
+            With a password set, recipients need both the link and the password
+            to see the files.
+          </p>
+
           <button
             className="btn btn-primary"
             onClick={handleShare}
@@ -240,6 +276,8 @@ export default function ShareBox() {
           </div>
           <p className="result-note">
             until the link stops working and the files are permanently deleted.
+            {protectedShare &&
+              " This share is password-protected — recipients need the password you set."}
           </p>
           <div className="share-link-row">
             <input
