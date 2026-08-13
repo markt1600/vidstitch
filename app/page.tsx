@@ -180,7 +180,16 @@ export default function Home() {
 
   return (
     <main>
-      <h1>File Utilities</h1>
+      <header>
+        <h1 className="masthead">
+          File <em>Utilities</em>
+        </h1>
+        <div className="dateline">
+          <span className="ln" />
+          <span>Private · Self-destructing · marktan.ai</span>
+          <span className="ln" />
+        </div>
+      </header>
       <p className="tagline">
         Private, self-destructing tools for quick file jobs: stitch MP4 videos
         into one, compress a video to a target size, make GIFs, resize images
