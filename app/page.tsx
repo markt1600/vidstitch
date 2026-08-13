@@ -16,10 +16,19 @@ import {
 
 type Phase = "idle" | "uploading" | "merging" | "done" | "expired";
 
+interface Joint {
+  from: number;
+  to: number;
+  matched: boolean;
+  trimmedSeconds: number;
+  score: number;
+}
+
 interface MergeResult {
   url: string;
   downloadUrl: string;
   expiresAt: number;
+  joints?: Joint[];
 }
 
 export default function Home() {
@@ -27,6 +36,7 @@ export default function Home() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [uploadIndex, setUploadIndex] = useState(0);
   const [uploadCount, setUploadCount] = useState(0);
+  const [fuzzy, setFuzzy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
@@ -139,7 +149,7 @@ export default function Home() {
       const res = await fetch("/api/merge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls }),
+        body: JSON.stringify({ urls, mode: fuzzy ? "fuzzy" : "strict" }),
       });
       const data = (await res.json()) as MergeResult & { error?: string };
       if (!res.ok) {
@@ -269,6 +279,31 @@ export default function Home() {
             </>
           )}
 
+          <div className="mode-row">
+            <span className="field-label">Stitching mode</span>
+            <div className="seg-group">
+              <button
+                className={`seg${!fuzzy ? " active" : ""}`}
+                onClick={() => setFuzzy(false)}
+                disabled={busy}
+              >
+                Strict
+              </button>
+              <button
+                className={`seg${fuzzy ? " active" : ""}`}
+                onClick={() => setFuzzy(true)}
+                disabled={busy}
+              >
+                Fuzzy
+              </button>
+            </div>
+          </div>
+          <p className="field-hint">
+            {fuzzy
+              ? "Fuzzy: each clip's first frame is compared against every frame in the last 2 seconds of the previous clip, and the overlap is trimmed so the frames line up. Use when your clips overlap slightly. Slower (the result is re-encoded)."
+              : "Strict: clips are joined exactly as uploaded, frame for frame."}
+          </p>
+
           <button
             className="btn btn-primary"
             onClick={handleMerge}
@@ -308,6 +343,18 @@ export default function Home() {
             until this file is permanently deleted from the server. Your
             original clips are already gone.
           </p>
+          {result.joints && (
+            <ul className="joint-list">
+              {result.joints.map((j) => (
+                <li key={j.from}>
+                  Clip {j.from} → {j.to}:{" "}
+                  {j.matched
+                    ? `trimmed ${j.trimmedSeconds}s of overlap (frame match ${(j.score * 100).toFixed(1)}%)`
+                    : `no overlap found (best frame match ${(j.score * 100).toFixed(1)}%) — joined as-is`}
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="result-actions">
             <a className="btn btn-primary" href={result.downloadUrl} style={{ width: "auto", marginTop: 0 }}>
               Download merged.mp4
