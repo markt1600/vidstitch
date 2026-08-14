@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import {
@@ -21,9 +20,9 @@ export const maxDuration = 60;
  * Opens a viewer session for a protected stream: verifies the stream exists
  * and hasn't expired, counts sessions (too many page loads means the link is
  * being passed around or attacked → the stream self-destructs), and mints
- * the HMAC token the /api/stream proxy requires. Also returns the watermark
- * text (viewer IP hash + time) that the player overlays on the video for
- * traceability.
+ * the HMAC token the /api/stream proxy requires. Also returns the viewer's
+ * IP (always watermarked in the lower-right, with a live clock) and the
+ * creator's optional label text for the line above it.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let sid: string;
@@ -74,15 +73,26 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const ua = request.headers.get("user-agent") ?? "";
     const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "?";
-    const ipTag = createHash("sha256").update(ip).digest("hex").slice(0, 8);
-    const now = new Date();
-    const watermark = `${ipTag} · ${now.getUTCHours().toString().padStart(2, "0")}:${now.getUTCMinutes().toString().padStart(2, "0")}Z`;
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      "unknown";
+
+    let label = "";
+    const labelBlob = blobs.find((b) => b.pathname.endsWith("/label.txt"));
+    if (labelBlob) {
+      const res = await get(labelBlob.url, {
+        access: "private",
+        token: blobToken(),
+      });
+      if (res?.stream) {
+        label = (await new Response(res.stream).text()).slice(0, 80);
+      }
+    }
 
     return NextResponse.json({
       token: signViewerToken(sid, ua, expiresAt),
       expiresAt,
-      watermark,
+      ip,
+      label,
     });
   } catch {
     return NextResponse.json(

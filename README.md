@@ -25,10 +25,12 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    video server-side**: download-tool user agents, non-`<video>` fetches
    (`Sec-Fetch-Dest`), forged/expired tokens, right-click, save/print
    shortcuts, developer tools (shortcut + docked-size heuristic), the
-   PrintScreen key, and more than 6 viewer sessions. A visible watermark
-   (viewer IP hash + UTC time) overlays playback for traceability. Honest
-   limits: OS-level screen recording and phone cameras cannot be detected
-   by any website — the watermark is the deterrent for those.
+   PrintScreen key, and more than 6 viewer sessions. The lower-right corner
+   always watermarks the viewer's IP address with a live UTC clock, with an
+   optional creator-set text line (e.g. "For Joe") above it, for
+   traceability. Honest limits: OS-level screen recording and phone cameras
+   cannot be detected by any website — the watermark is the deterrent for
+   those.
 8. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the

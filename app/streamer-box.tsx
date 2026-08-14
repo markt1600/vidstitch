@@ -16,6 +16,7 @@ function isMp4(file: File): boolean {
 
 export default function StreamerBox() {
   const [file, setFile] = useState<File | null>(null);
+  const [label, setLabel] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [sid, setSid] = useState<string | null>(null);
@@ -82,7 +83,7 @@ export default function StreamerBox() {
       const res = await fetch("/api/streamer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, label: label.trim() }),
       });
       const data = (await res.json()) as {
         sid?: string;
@@ -161,6 +162,25 @@ export default function StreamerBox() {
               }}
             />
           </div>
+
+          <div className="field-row">
+            <label className="field">
+              <span className="field-label">Watermark text (optional)</span>
+              <input
+                className="text-input"
+                type="text"
+                maxLength={80}
+                placeholder={'e.g. "For Joe"'}
+                value={label}
+                disabled={busy}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </label>
+          </div>
+          <p className="field-hint">
+            Shown in the lower-right corner above the always-on watermark of
+            the viewer&apos;s IP address and a live clock.
+          </p>
 
           <button
             className="btn btn-primary"

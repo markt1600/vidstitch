@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { copy, del } from "@vercel/blob";
+import { copy, del, put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
@@ -20,12 +20,17 @@ export const maxDuration = 60;
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let url: string;
+  let label = "";
   try {
-    const body = (await request.json()) as { url?: unknown };
+    const body = (await request.json()) as { url?: unknown; label?: unknown };
     if (typeof body.url !== "string" || !isOwnBlobUrl(body.url, UPLOAD_PREFIX)) {
       throw new Error();
     }
     url = body.url;
+    if (typeof body.label === "string") {
+      // eslint-disable-next-line no-control-regex
+      label = body.label.replace(/[\x00-\x1f\x7f]/g, "").trim().slice(0, 80);
+    }
   } catch {
     return NextResponse.json(
       { error: "Provide an uploaded file URL." },
@@ -42,6 +47,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       contentType: "video/mp4",
       token: blobToken(),
     });
+    if (label) {
+      // The optional creator watermark text, shown above the IP/time line.
+      await put(`${STREAM_PREFIX}${sid}/label.txt`, label, {
+        access: "private",
+        contentType: "text/plain",
+        token: blobToken(),
+      });
+    }
     await del(url, { token: blobToken() }).catch(() => {});
     return NextResponse.json({
       sid,

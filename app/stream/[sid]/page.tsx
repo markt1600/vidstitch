@@ -11,7 +11,9 @@ export default function StreamPage() {
   const sid = params.sid;
   const [phase, setPhase] = useState<Phase>("loading");
   const [token, setToken] = useState<string | null>(null);
-  const [watermark, setWatermark] = useState("");
+  const [viewerIp, setViewerIp] = useState("");
+  const [label, setLabel] = useState("");
+  const [clock, setClock] = useState("");
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [destroyReason, setDestroyReason] = useState("");
@@ -46,7 +48,8 @@ export default function StreamPage() {
         const data = (await res.json()) as {
           token?: string;
           expiresAt?: number;
-          watermark?: string;
+          ip?: string;
+          label?: string;
           error?: string;
         };
         if (cancelled) return;
@@ -56,7 +59,8 @@ export default function StreamPage() {
         }
         setToken(data.token);
         setExpiresAt(data.expiresAt);
-        setWatermark(data.watermark ?? "");
+        setViewerIp(data.ip ?? "unknown");
+        setLabel(data.label ?? "");
         setPhase("playing");
       } catch {
         if (!cancelled) setPhase("expired");
@@ -66,6 +70,22 @@ export default function StreamPage() {
       cancelled = true;
     };
   }, [sid]);
+
+  // Live clock in the watermark: a changing timestamp makes any capture
+  // traceable to the exact moment as well as the viewer.
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const tick = () => {
+      const now = new Date();
+      const p = (n: number) => n.toString().padStart(2, "0");
+      setClock(
+        `${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())} UTC`,
+      );
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   // Expiry countdown.
   useEffect(() => {
@@ -207,11 +227,13 @@ export default function StreamPage() {
             />
             {/* Interaction shield: catches clicks/drags before the video. */}
             <div className="stream-shield" onClick={togglePlay} />
-            {/* Traceability watermark tiles over the whole frame. */}
+            {/* Lower-right traceability watermark: optional creator label
+                above the always-on viewer IP + live clock. */}
             <div className="stream-watermark" aria-hidden>
-              {Array.from({ length: 9 }, (_, i) => (
-                <span key={i}>{watermark}</span>
-              ))}
+              {label && <span className="wm-label">{label}</span>}
+              <span className="wm-ip">
+                {viewerIp} · {clock}
+              </span>
             </div>
           </div>
 
