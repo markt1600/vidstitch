@@ -18,7 +18,18 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    (palettegen/paletteuse two-stage encode).
 6. **Image resizer** — resize/convert/compress images entirely in the
    browser via canvas; the image is never uploaded at all.
-7. **Share passwords** — a share can optionally require a password:
+7. **Streamer** — a view-only protected stream link. The video never gets a
+   client-visible URL: bytes flow only through `/api/stream`, a Range-capable
+   proxy gated by a stateless HMAC token bound to the viewer's browser
+   session and expiry. Violations don't just fail — they **destroy the
+   video server-side**: download-tool user agents, non-`<video>` fetches
+   (`Sec-Fetch-Dest`), forged/expired tokens, right-click, save/print
+   shortcuts, developer tools (shortcut + docked-size heuristic), the
+   PrintScreen key, and more than 6 viewer sessions. A visible watermark
+   (viewer IP hash + UTC time) overlays playback for traceability. Honest
+   limits: OS-level screen recording and phone cameras cannot be detected
+   by any website — the watermark is the deterrent for those.
+8. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the
    share API refuses to mint presigned URLs without the matching password.

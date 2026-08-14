@@ -575,6 +575,71 @@ h1 {
   margin-top: 12px;
 }
 
+/* ---------------- Protected stream viewer ---------------- */
+
+.stream-stage {
+  position: relative;
+  margin-top: 18px;
+  background: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stream-stage video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  pointer-events: none;
+}
+
+.stream-shield {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.stream-watermark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+  pointer-events: none;
+}
+
+.stream-watermark span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(245, 239, 226, 0.28);
+  transform: rotate(-18deg);
+  white-space: nowrap;
+}
+
+.stream-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.stream-seek {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.stream-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ---------------- Footer note ---------------- */
 
 .privacy-note {

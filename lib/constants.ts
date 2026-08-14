@@ -22,6 +22,13 @@ export const EXTRACT_RETENTION_MS = 5 * 60 * 1000;
 // Generic processed outputs (compressed videos, GIFs): same 5-minute life.
 export const OUTPUT_RETENTION_MS = 5 * 60 * 1000;
 
+// Streamer: protected view-only streams, same 5-minute life. A stream is
+// destroyed early on any protection violation. MAX_STREAM_SESSIONS bounds
+// how many viewer sessions (page loads) one stream allows before it is
+// treated as being passed around / attacked and self-destructs.
+export const STREAM_RETENTION_MS = 5 * 60 * 1000;
+export const MAX_STREAM_SESSIONS = 6;
+
 // GIF maker bounds.
 export const MAX_GIF_SECONDS = 15;
 
@@ -35,6 +42,7 @@ export const MERGED_PREFIX = "merged/";
 export const SHARE_PREFIX = "shares/";
 export const EXTRACT_PREFIX = "extracts/";
 export const OUTPUT_PREFIX = "outputs/";
+export const STREAM_PREFIX = "streams/";
 
 // Name of the hidden marker blob that stores a share's password hash.
 export const SHARE_PASSWORD_MARKER = ".password";
