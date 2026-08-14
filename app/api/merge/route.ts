@@ -15,9 +15,12 @@ import {
 import {
   downloadTo,
   findOverlapCut,
+  findSpliceCuts,
   presignedDownloadUrl,
   probeMedia,
+  renderSpliced,
   runFfmpeg,
+  type SpliceCut,
 } from "@/lib/ffmpeg";
 
 export const runtime = "nodejs";
@@ -122,10 +125,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   let mode: "strict" | "fuzzy" = "strict";
   try {
     const body = (await request.json()) as { urls?: unknown; mode?: unknown };
+    if (body.mode === "fuzzy") mode = "fuzzy";
     if (
       !Array.isArray(body.urls) ||
-      body.urls.length < 2 ||
+      body.urls.length < 1 ||
       body.urls.length > MAX_FILES ||
+      // A single file is only meaningful in fuzzy mode (internal splicing).
+      (body.urls.length === 1 && mode !== "fuzzy") ||
       !body.urls.every(
         (u): u is string => typeof u === "string" && isOwnBlobUrl(u, UPLOAD_PREFIX),
       )
@@ -133,10 +139,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new Error();
     }
     urls = body.urls;
-    if (body.mode === "fuzzy") mode = "fuzzy";
   } catch {
     return NextResponse.json(
-      { error: `Provide 2 to ${MAX_FILES} uploaded file URLs.` },
+      {
+        error: `Provide 2 to ${MAX_FILES} uploaded file URLs, or a single file with fuzzy mode.`,
+      },
       { status: 400 },
     );
   }
@@ -173,8 +180,29 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const output = path.join(workDir, "merged.mp4");
     let joints: Joint[] | undefined;
+    let cuts: SpliceCut[] | undefined;
 
-    if (mode === "fuzzy") {
+    if (urls.length === 1) {
+      // Single-file fuzzy: find internal discontinuities whose frame repeats
+      // earlier footage and splice those duplicate segments out.
+      const info = await probeMedia(inputs[0]);
+      if (info.width === 0 || info.height === 0 || info.duration <= 0) {
+        throw new Error("Could not read the video stream.");
+      }
+      cuts = await findSpliceCuts(inputs[0], info, workDir);
+      if (cuts.length === 0) {
+        // Nothing to splice — return the video unchanged.
+        await runFfmpeg([
+          "-hide_banner", "-loglevel", "error", "-y",
+          "-i", inputs[0],
+          "-c", "copy",
+          "-movflags", "+faststart",
+          output,
+        ]);
+      } else {
+        await renderSpliced(inputs[0], info, cuts, output);
+      }
+    } else if (mode === "fuzzy") {
       joints = await fuzzyMerge(inputs, workDir, output);
     } else {
       // ffmpeg concat demuxer needs single quotes in paths escaped as '\''.
@@ -219,7 +247,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     const expiresAt = Date.now() + MERGED_RETENTION_MS;
     const downloadUrl = await presignedDownloadUrl(blob.pathname, expiresAt);
 
-    return NextResponse.json({ url: blob.url, downloadUrl, expiresAt, joints });
+    return NextResponse.json({
+      url: blob.url,
+      downloadUrl,
+      expiresAt,
+      joints,
+      cuts,
+    });
   } catch (error) {
     // Privacy first: even on failure, the uploaded sources are deleted.
     await deleteSources();

@@ -28,11 +28,25 @@ interface Joint {
   score: number;
 }
 
+interface SpliceCut {
+  start: number;
+  end: number;
+  seconds: number;
+  score: number;
+}
+
 interface MergeResult {
   url: string;
   downloadUrl: string;
   expiresAt: number;
   joints?: Joint[];
+  cuts?: SpliceCut[];
+}
+
+function formatTimestamp(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = (seconds % 60).toFixed(1).padStart(4, "0");
+  return `${m}:${s}`;
 }
 
 export default function Home() {
@@ -126,7 +140,7 @@ export default function Home() {
   }, [phase, result, deleteMerged]);
 
   const handleMerge = async () => {
-    if (files.length < 2) return;
+    if (files.length < 1 || (files.length === 1 && !fuzzy)) return;
     if (totalBytes > MAX_TOTAL_BYTES) {
       setError(
         `Combined size ${formatBytes(totalBytes)} exceeds the ${formatBytes(MAX_TOTAL_BYTES)} limit.`,
@@ -204,9 +218,10 @@ export default function Home() {
       <section className="share-section">
         <h2 className="section-title">Video stitcher</h2>
         <p className="tagline">
-          Merge up to {MAX_FILES} MP4 files into one. Your originals are
-          deleted the moment the merge completes, and the merged file
-          self-destructs after 5 minutes.
+          Merge up to {MAX_FILES} MP4 files into one — or drop a single file in
+          fuzzy mode to scan it for repeated footage and splice the duplicates
+          out. Your originals are deleted the moment processing completes, and
+          the result self-destructs after 5 minutes.
         </p>
 
       {(phase === "idle" || busy) && (
@@ -315,22 +330,31 @@ export default function Home() {
           </div>
           <p className="field-hint">
             {fuzzy
-              ? "Fuzzy: each clip's first frame is compared against every frame in the last 2 seconds of the previous clip, and the overlap is trimmed so the frames line up. Use when your clips overlap slightly. Slower (the result is re-encoded)."
+              ? "Fuzzy: overlapping frames are found by comparison and trimmed so everything lines up. With 2+ files, each clip's first frame is matched against the last 2 seconds of the previous clip. With a single file, the whole video is scanned for discontinuities — wherever a frame doesn't continue from its predecessor but matches (>60%) a frame in the previous 2 seconds, the duplicated segment is spliced out. Slower (the result is re-encoded)."
               : "Strict: clips are joined exactly as uploaded, frame for frame."}
           </p>
 
           <button
             className="btn btn-primary"
             onClick={handleMerge}
-            disabled={busy || files.length < 2 || totalBytes > MAX_TOTAL_BYTES}
+            disabled={
+              busy ||
+              files.length < 1 ||
+              (files.length === 1 && !fuzzy) ||
+              totalBytes > MAX_TOTAL_BYTES
+            }
           >
             {phase === "uploading"
               ? `Uploading file ${uploadIndex + 1} of ${uploadCount}…`
               : phase === "merging"
                 ? "Merging…"
-                : files.length < 2
-                  ? "Select at least 2 files"
-                  : `Merge ${files.length} files`}
+                : files.length === 0
+                  ? "Select files"
+                  : files.length === 1
+                    ? fuzzy
+                      ? "Splice overlaps out of 1 file"
+                      : "Select at least 2 files (or use fuzzy for 1)"
+                    : `Merge ${files.length} files`}
           </button>
 
           {busy && (
@@ -350,7 +374,9 @@ export default function Home() {
 
       {phase === "done" && result && (
         <div className="result-card">
-          <h2>Your merged video is ready</h2>
+          <h2>
+            {result.cuts ? "Your spliced video is ready" : "Your merged video is ready"}
+          </h2>
           <div className={`countdown${remainingMs < 60_000 ? " urgent" : ""}`}>
             {formatCountdown(remainingMs)}
           </div>
@@ -370,6 +396,22 @@ export default function Home() {
               ))}
             </ul>
           )}
+          {result.cuts &&
+            (result.cuts.length > 0 ? (
+              <ul className="joint-list">
+                {result.cuts.map((c) => (
+                  <li key={c.start}>
+                    Cut {formatTimestamp(c.start)}–{formatTimestamp(c.end)} (
+                    {c.seconds}s duplicate, frame match{" "}
+                    {(c.score * 100).toFixed(1)}%)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="result-note">
+                No duplicated segments found — the video is unchanged.
+              </p>
+            ))}
           <div className="result-actions">
             <a className="btn btn-primary" href={result.downloadUrl} style={{ width: "auto", marginTop: 0 }}>
               Download merged.mp4
