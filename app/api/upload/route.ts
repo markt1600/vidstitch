@@ -45,7 +45,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   let filename = "file";
   let shareId: string | null = null;
-  let kind: "video" | "audio" = "video";
+  let kind: "video" | "audio" | "audio-any" = "video";
   try {
     const body = (await request.json()) as {
       filename?: unknown;
@@ -55,8 +55,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof body.filename === "string" && body.filename.trim()) {
       filename = body.filename;
     }
-    if (body.kind === "audio") {
-      kind = "audio";
+    if (body.kind === "audio" || body.kind === "audio-any") {
+      kind = body.kind;
     }
     if (typeof body.shareId === "string") {
       if (!SHARE_ID_RE.test(body.shareId)) {
@@ -88,7 +88,9 @@ export async function POST(request: Request): Promise<NextResponse> {
             allowedContentTypes:
               kind === "audio"
                 ? ["audio/mpeg", "audio/mp3"]
-                : ["video/mp4"],
+                : kind === "audio-any"
+                  ? ["audio/*"]
+                  : ["video/mp4"],
             maximumSizeInBytes: MAX_FILE_BYTES,
             addRandomSuffix: true,
             validUntil: Date.now() + 15 * 60 * 1000,

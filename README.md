@@ -31,7 +31,12 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    traceability. Honest limits: OS-level screen recording and phone cameras
    cannot be detected by any website — the watermark is the deterrent for
    those.
-8. **Share passwords** — a share can optionally require a password:
+8. **Looper** — repeat an MP4 back-to-back N times via `-stream_loop` (pure
+   stream copy, lossless and fast). Attach an audio file and the loop count
+   is auto-calculated to cover it; the audio replaces the video's track and
+   `-shortest` ends the output with the audio — the classic one-hour-lofi
+   pattern. Output capped at 250 MB (stream-copy looping multiplies size).
+9. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the
    share API refuses to mint presigned URLs without the matching password.

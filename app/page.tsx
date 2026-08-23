@@ -5,6 +5,7 @@ import CompressBox from "@/app/compress-box";
 import ExtractBox from "@/app/extract-box";
 import GifBox from "@/app/gif-box";
 import ImageBox from "@/app/image-box";
+import LoopBox from "@/app/loop-box";
 import ShareBox from "@/app/share-box";
 import StreamerBox from "@/app/streamer-box";
 import {
@@ -208,9 +209,10 @@ export default function Home() {
       <p className="tagline">
         Private, self-destructing tools for quick file jobs: stitch MP4 videos
         into one, compress a video to a target size, stream a video through a
-        view-only protected link, make GIFs, resize images right in your
-        browser, share files through an expiring (optionally
-        password-protected) private link, and cut clips out of MP3s.
+        view-only protected link, make GIFs, loop a clip (with an optional
+        soundtrack laid over it), resize images right in your browser, share
+        files through an expiring (optionally password-protected) private
+        link, and cut clips out of MP3s.
         Everything you upload is stored privately, processed, and permanently
         deleted within 5 minutes — no accounts, no records, no copies.
       </p>
@@ -451,6 +453,8 @@ export default function Home() {
       <StreamerBox />
 
       <GifBox />
+
+      <LoopBox />
 
       <ImageBox />
 

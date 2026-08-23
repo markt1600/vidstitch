@@ -569,6 +569,23 @@ h1 {
   text-transform: uppercase;
 }
 
+.audio-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+
+.audio-pick-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
 .quality-slider {
   width: 100%;
   accent-color: var(--accent);

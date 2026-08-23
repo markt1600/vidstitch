@@ -59,7 +59,11 @@ async function diagnoseBlobConnectivity(): Promise<string | null> {
  */
 export async function uploadPrivate(
   file: File,
-  meta: { filename: string; shareId?: string; kind?: "video" | "audio" },
+  meta: {
+    filename: string;
+    shareId?: string;
+    kind?: "video" | "audio" | "audio-any";
+  },
 ): Promise<{ url: string; pathname: string }> {
   const tokenRes = await fetch("/api/upload", {
     method: "POST",
