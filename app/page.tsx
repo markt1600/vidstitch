@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import AudioStitchBox from "@/app/audio-stitch-box";
 import CompressBox from "@/app/compress-box";
 import ExtractBox from "@/app/extract-box";
 import GifBox from "@/app/gif-box";
@@ -212,7 +213,7 @@ export default function Home() {
         view-only protected link, make GIFs, loop a clip (with an optional
         soundtrack laid over it), resize images right in your browser, share
         files through an expiring (optionally password-protected) private
-        link, and cut clips out of MP3s.
+        link, stitch MP3s into a crossfaded mix, and cut clips out of MP3s.
         Everything you upload is stored privately, processed, and permanently
         deleted within 5 minutes — no accounts, no records, no copies.
       </p>
@@ -459,6 +460,8 @@ export default function Home() {
       <ImageBox />
 
       <ShareBox />
+
+      <AudioStitchBox />
 
       <ExtractBox />
 

@@ -16,6 +16,11 @@ export const MERGED_RETENTION_MS = 5 * 60 * 1000;
 export const SHARE_RETENTION_MS = 5 * 60 * 1000;
 export const MAX_SHARE_FILES = 10;
 
+// MP3 stitcher: how many tracks one stitch accepts, and the default
+// equal-power crossfade length.
+export const MAX_AUDIO_FILES = 10;
+export const DEFAULT_CROSSFADE_S = 3;
+
 // MP3 clip extractor: how long an extracted clip lives.
 export const EXTRACT_RETENTION_MS = 5 * 60 * 1000;
 

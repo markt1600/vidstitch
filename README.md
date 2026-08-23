@@ -36,7 +36,12 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    is auto-calculated to cover it; the audio replaces the video's track and
    `-shortest` ends the output with the audio — the classic one-hour-lofi
    pattern. Output capped at 250 MB (stream-copy looping multiplies size).
-9. **Share passwords** — a share can optionally require a password:
+9. **MP3 stitcher** — join 2–10 MP3s into one track. Default join is a
+   3-second equal-power crossfade (`acrossfade` with the qsin curve —
+   constant perceived loudness through the blend, built for lofi mixes)
+   with an adjustable 0.5–10 s length, or a clean no-fade join. Inputs are
+   normalized to 44.1 kHz stereo; output is 192 kbps MP3.
+10. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the
    share API refuses to mint presigned URLs without the matching password.
