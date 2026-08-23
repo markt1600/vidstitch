@@ -22,6 +22,7 @@ interface StitchResult {
   expiresAt: number;
   outputSeconds: number;
   outputBytes: number;
+  gainsDb?: number[];
 }
 
 function isMp3(file: File): boolean {
@@ -35,7 +36,9 @@ function isMp3(file: File): boolean {
 export default function AudioStitchBox() {
   const [files, setFiles] = useState<File[]>([]);
   const [crossfade, setCrossfade] = useState(true);
+  const [normalize, setNormalize] = useState(true);
   const [fadeText, setFadeText] = useState(String(DEFAULT_CROSSFADE_S));
+  const [trackNames, setTrackNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
   const [uploadIndex, setUploadIndex] = useState(0);
   const [uploadCount, setUploadCount] = useState(0);
@@ -155,6 +158,7 @@ export default function AudioStitchBox() {
           urls,
           mode: crossfade ? "crossfade" : "clean",
           fadeSeconds,
+          normalize,
         }),
       });
       const data = (await res.json()) as StitchResult & { error?: string };
@@ -162,6 +166,7 @@ export default function AudioStitchBox() {
         throw new Error(data.error ?? "Stitching failed.");
       }
       setResult(data);
+      setTrackNames(files.map((f) => f.name));
       setFiles([]);
       setPhase("done");
     } catch (err) {
@@ -302,7 +307,30 @@ export default function AudioStitchBox() {
               </label>
             )}
           </div>
+          <div className="mode-row">
+            <span className="field-label">Volume</span>
+            <div className="seg-group">
+              <button
+                className={`seg${normalize ? " active" : ""}`}
+                onClick={() => setNormalize(true)}
+                disabled={busy}
+              >
+                Match loudness
+              </button>
+              <button
+                className={`seg${!normalize ? " active" : ""}`}
+                onClick={() => setNormalize(false)}
+                disabled={busy}
+              >
+                Keep original
+              </button>
+            </div>
+          </div>
           <p className="field-hint">
+            {normalize
+              ? "Each track's loudness is measured and levelled to −14 LUFS with a pure gain change — no compression, peaks kept clear of clipping."
+              : "Tracks keep exactly the volume they came with."}
+            {" "}
             {crossfade
               ? "Equal-power crossfade: each track blends into the next at constant perceived loudness."
               : "Clean: tracks are joined back-to-back with no fading."}
@@ -351,6 +379,19 @@ export default function AudioStitchBox() {
             until this file is permanently deleted from the server. Your
             original tracks are already gone.
           </p>
+          {result.gainsDb && (
+            <ul className="joint-list">
+              {result.gainsDb.map((g, i) => (
+                <li key={i}>
+                  Track {i + 1}
+                  {trackNames[i] ? ` (${trackNames[i]})` : ""}:{" "}
+                  {Math.abs(g) < 0.05
+                    ? "volume already on target"
+                    : `${g > 0 ? "+" : ""}${g} dB to match loudness`}
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="result-actions">
             <a
               className="btn btn-primary"

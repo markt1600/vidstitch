@@ -39,8 +39,12 @@ aggressive, multi-layered deletion so nothing lingers on the server:
 9. **MP3 stitcher** — join 2–10 MP3s into one track. Default join is a
    3-second equal-power crossfade (`acrossfade` with the qsin curve —
    constant perceived loudness through the blend, built for lofi mixes)
-   with an adjustable 0.5–10 s length, or a clean no-fade join. Inputs are
-   normalized to 44.1 kHz stereo; output is 192 kbps MP3.
+   with an adjustable 0.5–10 s length, or a clean no-fade join. By default
+   every track's loudness is measured (loudnorm analysis) and levelled to
+   −14 LUFS by a pure linear gain — no dynamics processing, peaks capped at
+   −1 dBTP — with a "keep original" option; the response reports the gain
+   applied per track. Inputs are resampled to 44.1 kHz stereo; output is
+   192 kbps MP3.
 10. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the

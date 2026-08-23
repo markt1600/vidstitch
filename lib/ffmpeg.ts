@@ -138,6 +138,42 @@ async function parseSsimLog(
   return { bestN, bestScore };
 }
 
+/**
+ * Measures a file's integrated loudness (LUFS) and true peak (dBTP) using
+ * ffmpeg's loudnorm analyzer. Returns null if the measurement can't be read.
+ */
+export async function measureLoudness(
+  file: string,
+): Promise<{ lufs: number; truePeakDb: number } | null> {
+  let stderr = "";
+  try {
+    const result = await execFileAsync(
+      ffmpegPath(),
+      [
+        "-hide_banner",
+        "-i", file,
+        "-af", "loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json",
+        "-f", "null", "-",
+      ],
+      { maxBuffer: 8 * 1024 * 1024, timeout: 120_000 },
+    );
+    stderr = result.stderr ?? "";
+  } catch (err) {
+    stderr = (err as { stderr?: string }).stderr ?? "";
+  }
+  const block = /\{[\s\S]*?"input_i"[\s\S]*?\}/.exec(stderr);
+  if (!block) return null;
+  try {
+    const json = JSON.parse(block[0]) as { input_i?: string; input_tp?: string };
+    const lufs = Number.parseFloat(json.input_i ?? "");
+    const truePeakDb = Number.parseFloat(json.input_tp ?? "");
+    if (!Number.isFinite(lufs) || !Number.isFinite(truePeakDb)) return null;
+    return { lufs, truePeakDb };
+  } catch {
+    return null;
+  }
+}
+
 // ---------- Single-file splicing (fuzzy mode with one upload) ----------
 
 // A frame this different from its predecessor counts as a discontinuity.
