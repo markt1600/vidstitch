@@ -7,6 +7,7 @@ import {
   parseTimecode,
   uploadPrivate,
 } from "@/lib/client-upload";
+import CopyLinkButton from "@/app/copy-link-button";
 import { MAX_FILE_BYTES, MAX_GIF_SECONDS } from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "converting" | "done" | "expired";
@@ -275,6 +276,7 @@ export default function GifBox() {
             >
               Download clip.gif
             </a>
+            <CopyLinkButton url={result.downloadUrl} />
             <button
               className="btn btn-danger"
               onClick={async () => {

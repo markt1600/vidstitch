@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AudioStitchBox from "@/app/audio-stitch-box";
 import CompressBox from "@/app/compress-box";
+import CopyLinkButton from "@/app/copy-link-button";
 import ExtractBox from "@/app/extract-box";
 import GifBox from "@/app/gif-box";
 import ImageBox from "@/app/image-box";
@@ -419,6 +420,7 @@ export default function Home() {
             <a className="btn btn-primary" href={result.downloadUrl} style={{ width: "auto", marginTop: 0 }}>
               Download merged.mp4
             </a>
+            <CopyLinkButton url={result.downloadUrl} />
             <button
               className="btn btn-danger"
               onClick={async () => {

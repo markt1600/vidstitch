@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import CopyLinkButton from "@/app/copy-link-button";
 import { formatBytes, formatCountdown } from "@/lib/client-upload";
 
 interface ShareFile {
@@ -150,6 +151,7 @@ export default function SharePage() {
                 >
                   Download
                 </a>
+                <CopyLinkButton url={file.url} small />
               </li>
             ))}
           </ul>

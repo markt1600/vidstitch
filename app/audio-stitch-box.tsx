@@ -7,6 +7,7 @@ import {
   formatCountdown,
   uploadPrivate,
 } from "@/lib/client-upload";
+import CopyLinkButton from "@/app/copy-link-button";
 import {
   DEFAULT_CROSSFADE_S,
   MAX_AUDIO_FILES,
@@ -402,6 +403,7 @@ export default function AudioStitchBox() {
             >
               Download stitched.mp3
             </a>
+            <CopyLinkButton url={result.downloadUrl} />
             <button
               className="btn btn-danger"
               onClick={async () => {

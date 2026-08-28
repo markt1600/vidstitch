@@ -7,6 +7,7 @@ import {
   parseTimecode,
   uploadPrivate,
 } from "@/lib/client-upload";
+import CopyLinkButton from "@/app/copy-link-button";
 import { MAX_FILE_BYTES } from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "extracting" | "done" | "expired";
@@ -249,6 +250,7 @@ export default function ExtractBox() {
             >
               Download extract.mp3
             </a>
+            <CopyLinkButton url={result.downloadUrl} />
             <button
               className="btn btn-danger"
               onClick={async () => {
