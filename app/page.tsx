@@ -216,13 +216,13 @@ export default function Home() {
 
       <nav className="toolbar" aria-label="Utilities">
         <a href="#stitcher">Video stitcher</a>
+        <a href="#mp3-stitcher">MP3 stitcher</a>
+        <a href="#looper">Looper</a>
         <a href="#compressor">Compressor</a>
         <a href="#streamer">Streamer</a>
         <a href="#gif">GIF maker</a>
-        <a href="#looper">Looper</a>
         <a href="#images">Image resizer</a>
         <a href="#share">File share</a>
-        <a href="#mp3-stitcher">MP3 stitcher</a>
         <a href="#mp3-extractor">MP3 extractor</a>
       </nav>
       <p className="tagline">
@@ -485,19 +485,19 @@ export default function Home() {
       {error && <div className="error-box">{error}</div>}
       </section>
 
+      <AudioStitchBox />
+
+      <LoopBox />
+
       <CompressBox />
 
       <StreamerBox />
 
       <GifBox />
 
-      <LoopBox />
-
       <ImageBox />
 
       <ShareBox />
-
-      <AudioStitchBox />
 
       <ExtractBox />
 
