@@ -28,6 +28,7 @@ interface Joint {
   to: number;
   matched: boolean;
   trimmedSeconds: number;
+  trimmedNextSeconds?: number;
   score: number;
 }
 
@@ -57,7 +58,10 @@ export default function Home() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [uploadIndex, setUploadIndex] = useState(0);
   const [uploadCount, setUploadCount] = useState(0);
-  const [fuzzy, setFuzzy] = useState(false);
+  const [stitchMode, setStitchMode] = useState<"strict" | "fuzzy" | "fuzzy-max">(
+    "strict",
+  );
+  const fuzzy = stitchMode !== "strict";
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<MergeResult | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
@@ -170,7 +174,7 @@ export default function Home() {
       const res = await fetch("/api/merge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls, mode: fuzzy ? "fuzzy" : "strict" }),
+        body: JSON.stringify({ urls, mode: stitchMode }),
       });
       const data = (await res.json()) as MergeResult & { error?: string };
       if (!res.ok) {
@@ -329,25 +333,34 @@ export default function Home() {
             <span className="field-label">Stitching mode</span>
             <div className="seg-group">
               <button
-                className={`seg${!fuzzy ? " active" : ""}`}
-                onClick={() => setFuzzy(false)}
+                className={`seg${stitchMode === "strict" ? " active" : ""}`}
+                onClick={() => setStitchMode("strict")}
                 disabled={busy}
               >
                 Strict
               </button>
               <button
-                className={`seg${fuzzy ? " active" : ""}`}
-                onClick={() => setFuzzy(true)}
+                className={`seg${stitchMode === "fuzzy" ? " active" : ""}`}
+                onClick={() => setStitchMode("fuzzy")}
                 disabled={busy}
               >
                 Fuzzy
               </button>
+              <button
+                className={`seg${stitchMode === "fuzzy-max" ? " active" : ""}`}
+                onClick={() => setStitchMode("fuzzy-max")}
+                disabled={busy}
+              >
+                Max fuzzy
+              </button>
             </div>
           </div>
           <p className="field-hint">
-            {fuzzy
+            {stitchMode === "fuzzy"
               ? "Fuzzy: overlapping frames are found by comparison and trimmed so everything lines up. With 2+ files, each clip's first frame is matched against the last 2 seconds of the previous clip. With a single file, the whole video is scanned for discontinuities — wherever a frame doesn't continue from its predecessor but matches (>60%) a frame in the previous 2 seconds, the duplicated segment is spliced out. Slower (the result is re-encoded)."
-              : "Strict: clips are joined exactly as uploaded, frame for frame."}
+              : stitchMode === "fuzzy-max"
+                ? "Max fuzzy: every frame in the first second of each clip is scored against the last 3 seconds of the previous clip, and the join happens at the best-matching pair of frames — trimming the previous clip's tail and skipping into the next clip's start as needed. The most accurate line-up, and the slowest."
+                : "Strict: clips are joined exactly as uploaded, frame for frame."}
           </p>
 
           <button
@@ -406,7 +419,11 @@ export default function Home() {
                 <li key={j.from}>
                   Clip {j.from} → {j.to}:{" "}
                   {j.matched
-                    ? `trimmed ${j.trimmedSeconds}s of overlap (frame match ${(j.score * 100).toFixed(1)}%)`
+                    ? `trimmed ${j.trimmedSeconds}s from clip ${j.from}'s end${
+                        j.trimmedNextSeconds
+                          ? ` + ${j.trimmedNextSeconds}s from clip ${j.to}'s start`
+                          : ""
+                      } (frame match ${(j.score * 100).toFixed(1)}%)`
                     : `no overlap found (best frame match ${(j.score * 100).toFixed(1)}%) — joined as-is`}
                 </li>
               ))}

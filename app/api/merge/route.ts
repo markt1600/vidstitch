@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import {
   downloadTo,
+  findBestJointMax,
   findOverlapCut,
   findSpliceCuts,
   presignedDownloadUrl,
@@ -34,6 +35,8 @@ interface Joint {
   to: number;
   matched: boolean;
   trimmedSeconds: number;
+  /** Max-fuzzy only: seconds skipped from the start of the next clip. */
+  trimmedNextSeconds: number;
   score: number;
 }
 
@@ -49,6 +52,7 @@ async function fuzzyMerge(
   inputs: string[],
   workDir: string,
   output: string,
+  maxMode: boolean,
 ): Promise<Joint[]> {
   const infos = [];
   for (const input of inputs) {
@@ -60,14 +64,35 @@ async function fuzzyMerge(
 
   const joints: Joint[] = [];
   const cuts: (number | null)[] = [];
+  // Per-clip start offsets: max mode may skip into the next clip's opening.
+  const starts: number[] = inputs.map(() => 0);
   for (let i = 0; i < inputs.length - 1; i++) {
-    const { cutAt, score } = await findOverlapCut(
-      inputs[i],
-      infos[i],
-      inputs[i + 1],
-      workDir,
-      String(i),
-    );
+    let cutAt: number | null;
+    let score: number;
+    if (maxMode) {
+      const match = await findBestJointMax(
+        inputs[i],
+        infos[i],
+        inputs[i + 1],
+        infos[i + 1],
+        workDir,
+        String(i),
+        starts[i],
+      );
+      cutAt = match.cutAt;
+      score = match.score;
+      starts[i + 1] = cutAt !== null ? match.nextStart : 0;
+    } else {
+      const found = await findOverlapCut(
+        inputs[i],
+        infos[i],
+        inputs[i + 1],
+        workDir,
+        String(i),
+      );
+      cutAt = found.cutAt;
+      score = found.score;
+    }
     cuts.push(cutAt);
     joints.push({
       from: i + 1,
@@ -75,6 +100,7 @@ async function fuzzyMerge(
       matched: cutAt !== null,
       trimmedSeconds:
         cutAt !== null ? Number((infos[i].duration - cutAt).toFixed(2)) : 0,
+      trimmedNextSeconds: Number(starts[i + 1].toFixed(2)),
       score: Number(score.toFixed(3)),
     });
   }
@@ -85,8 +111,10 @@ async function fuzzyMerge(
 
   const args = ["-hide_banner", "-loglevel", "error", "-y"];
   for (let i = 0; i < inputs.length; i++) {
+    if (starts[i] > 0.0001) args.push("-ss", starts[i].toFixed(4));
     const cut = i < cuts.length ? cuts[i] : null;
-    if (cut !== null) args.push("-t", cut.toFixed(4));
+    // -t counts from the seek point, so subtract the start offset.
+    if (cut !== null) args.push("-t", (cut - starts[i]).toFixed(4));
     args.push("-i", inputs[i]);
   }
 
@@ -122,16 +150,16 @@ async function fuzzyMerge(
 
 export async function POST(request: Request): Promise<NextResponse> {
   let urls: string[];
-  let mode: "strict" | "fuzzy" = "strict";
+  let mode: "strict" | "fuzzy" | "fuzzy-max" = "strict";
   try {
     const body = (await request.json()) as { urls?: unknown; mode?: unknown };
-    if (body.mode === "fuzzy") mode = "fuzzy";
+    if (body.mode === "fuzzy" || body.mode === "fuzzy-max") mode = body.mode;
     if (
       !Array.isArray(body.urls) ||
       body.urls.length < 1 ||
       body.urls.length > MAX_FILES ||
-      // A single file is only meaningful in fuzzy mode (internal splicing).
-      (body.urls.length === 1 && mode !== "fuzzy") ||
+      // A single file is only meaningful in fuzzy modes (internal splicing).
+      (body.urls.length === 1 && mode === "strict") ||
       !body.urls.every(
         (u): u is string => typeof u === "string" && isOwnBlobUrl(u, UPLOAD_PREFIX),
       )
@@ -202,8 +230,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       } else {
         await renderSpliced(inputs[0], info, cuts, output);
       }
-    } else if (mode === "fuzzy") {
-      joints = await fuzzyMerge(inputs, workDir, output);
+    } else if (mode === "fuzzy" || mode === "fuzzy-max") {
+      joints = await fuzzyMerge(inputs, workDir, output, mode === "fuzzy-max");
     } else {
       // ffmpeg concat demuxer needs single quotes in paths escaped as '\''.
       const listFile = path.join(workDir, "list.txt");

@@ -138,6 +138,103 @@ async function parseSsimLog(
   return { bestN, bestScore };
 }
 
+// Max-fuzzy joint search windows: the previous clip's tail and how far into
+// the next clip candidate start frames are considered.
+export const MAX_OVERLAP_WINDOW_S = 3;
+export const NEXT_SEARCH_WINDOW_S = 1;
+
+export interface JointMatch {
+  /** Where to cut the previous clip (seconds from its start), or null. */
+  cutAt: number | null;
+  /** Where the next clip should start playing from (seconds). */
+  nextStart: number;
+  /** Best SSIM similarity found (0..1). */
+  score: number;
+}
+
+/**
+ * Max-fuzzy matcher: instead of only matching the next clip's first frame,
+ * every frame in the next clip's first NEXT_SEARCH_WINDOW_S seconds is a
+ * candidate, each scored against the last MAX_OVERLAP_WINDOW_S seconds of
+ * the previous clip. The best (previous frame, next frame) pair wins: the
+ * previous clip is cut there and the next clip starts from its matched
+ * frame. Searched coarsely (~6 candidates/second) then refined around the
+ * winner, so the result is frame-accurate without an exhaustive sweep.
+ */
+export async function findBestJointMax(
+  prevFile: string,
+  prevInfo: MediaInfo,
+  nextFile: string,
+  nextInfo: MediaInfo,
+  workDir: string,
+  label: string,
+  prevMinStart = 0,
+): Promise<JointMatch> {
+  const fpsPrev = prevInfo.fps > 0 ? prevInfo.fps : 30;
+  const fpsNext = nextInfo.fps > 0 ? nextInfo.fps : 30;
+  const tailStart = Math.max(
+    prevMinStart,
+    prevInfo.duration - MAX_OVERLAP_WINDOW_S,
+  );
+
+  // Dump the next clip's opening frames as PNG candidates (native timing).
+  await runFfmpeg([
+    "-hide_banner", "-loglevel", "error", "-y",
+    "-t", String(NEXT_SEARCH_WINDOW_S),
+    "-i", nextFile,
+    "-fps_mode", "passthrough",
+    `${workDir}/cand-${label}-%04d.png`,
+  ]);
+  const { readdir } = await import("node:fs/promises");
+  const cands = (await readdir(workDir))
+    .filter((f) => f.startsWith(`cand-${label}-`) && f.endsWith(".png"))
+    .sort();
+  if (cands.length === 0) return { cutAt: null, nextStart: 0, score: 0 };
+
+  const scan = async (k: number) => {
+    const log = `${workDir}/mj-${label}-${k}.log`;
+    await runFfmpeg([
+      "-hide_banner", "-loglevel", "error", "-y",
+      "-ss", String(tailStart),
+      "-i", prevFile,
+      "-i", `${workDir}/${cands[k]}`,
+      "-filter_complex",
+      `[1:v]scale=${prevInfo.width}:${prevInfo.height},format=yuv420p[r];[0:v]format=yuv420p[m];[m][r]ssim=stats_file=${log}`,
+      "-f", "null", "-",
+    ]);
+    return parseSsimLog(log);
+  };
+
+  const stride = Math.max(1, Math.round(fpsNext / 6));
+  let best = { k: 0, n: 0, score: -1 };
+  const tested = new Set<number>();
+  for (let k = 0; k < cands.length; k += stride) {
+    const { bestN, bestScore } = await scan(k);
+    tested.add(k);
+    if (bestScore > best.score) best = { k, n: bestN, score: bestScore };
+  }
+  const span = Math.min(stride - 1, 4);
+  for (
+    let k = Math.max(0, best.k - span);
+    k <= Math.min(cands.length - 1, best.k + span);
+    k++
+  ) {
+    if (tested.has(k)) continue;
+    const { bestN, bestScore } = await scan(k);
+    tested.add(k);
+    if (bestScore > best.score) best = { k, n: bestN, score: bestScore };
+  }
+
+  if (best.n === 0 || best.score < MIN_MATCH_SCORE) {
+    return { cutAt: null, nextStart: 0, score: Math.max(0, best.score) };
+  }
+  return {
+    cutAt: tailStart + (best.n - 1) / fpsPrev,
+    nextStart: best.k / fpsNext,
+    score: best.score,
+  };
+}
+
 /**
  * Measures a file's integrated loudness (LUFS) and true peak (dBTP) using
  * ffmpeg's loudnorm analyzer. Returns null if the measurement can't be read.
