@@ -1,4 +1,4 @@
-export const MAX_FILES = 6;
+export const MAX_FILES = 10;
 
 // Per-file and combined caps. The serverless /tmp scratch disk is 512 MB and
 // must hold every input plus the merged output, so the combined input size is

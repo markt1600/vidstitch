@@ -3,7 +3,7 @@
 A privacy-first web app for Vercel (presented as "File Utilities"), built on
 aggressive, multi-layered deletion so nothing lingers on the server:
 
-1. **MP4 merger** — stitch 2–6 MP4 files into one merged MP4.
+1. **MP4 merger** — stitch 2–10 MP4 files into one merged MP4.
 2. **Private file share** — upload up to 10 files of any type and get a
    `/share/<id>` link to hand out. The ID is an unguessable secret, the
    download URLs behind it are cryptographically presigned, and after
@@ -52,7 +52,7 @@ aggressive, multi-layered deletion so nothing lingers on the server:
 
 ## How it works
 
-1. The user selects up to 6 MP4 files (drag & drop or file picker), orders
+1. The user selects up to 10 MP4 files (drag & drop or file picker), orders
    them, and clicks **Merge**.
 2. Files upload directly from the browser to Vercel Blob. `/api/upload` mints
    a short-lived client token scoped to one pathname, and the browser PUTs
