@@ -148,7 +148,7 @@ async function parseSsimLog(
 // Max-fuzzy joint search windows: the previous clip's tail and how far into
 // the next clip candidate start frames are considered.
 export const MAX_OVERLAP_WINDOW_S = 3;
-export const NEXT_SEARCH_WINDOW_S = 1;
+export const NEXT_SEARCH_WINDOW_S = 2;
 
 export interface JointMatch {
   /** Where to cut the previous clip (seconds from its start), or null. */

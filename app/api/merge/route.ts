@@ -38,6 +38,8 @@ interface Joint {
   /** Max-fuzzy only: seconds skipped from the start of the next clip. */
   trimmedNextSeconds: number;
   score: number;
+  /** Max-fuzzy only: the wrap-around joint (last clip's end → first clip's start). */
+  loop?: boolean;
 }
 
 /**
@@ -102,6 +104,47 @@ async function fuzzyMerge(
         cutAt !== null ? Number((infos[i].duration - cutAt).toFixed(2)) : 0,
       trimmedNextSeconds: Number(starts[i + 1].toFixed(2)),
       score: Number(score.toFixed(3)),
+    });
+  }
+
+  // Loop joint: analyze the last clip's tail against the first clip's
+  // opening the same way, so the whole output plays as a seamless loop.
+  if (maxMode) {
+    const last = inputs.length - 1;
+    const match = await findBestJointMax(
+      inputs[last],
+      infos[last],
+      inputs[0],
+      infos[0],
+      workDir,
+      "loop",
+      starts[last],
+    );
+    let loopCut = match.cutAt;
+    let loopStart = loopCut !== null ? match.nextStart : 0;
+    // Reject degenerate trims that would consume a whole clip.
+    if (
+      loopCut !== null &&
+      (loopCut - starts[last] < 0.1 ||
+        (cuts[0] !== null && loopStart >= (cuts[0] as number) - 0.1) ||
+        loopStart >= infos[0].duration - 0.1)
+    ) {
+      loopCut = null;
+      loopStart = 0;
+    }
+    cuts.push(loopCut);
+    starts[0] = loopStart;
+    joints.push({
+      from: inputs.length,
+      to: 1,
+      matched: loopCut !== null,
+      trimmedSeconds:
+        loopCut !== null
+          ? Number((infos[last].duration - loopCut).toFixed(2))
+          : 0,
+      trimmedNextSeconds: Number(loopStart.toFixed(2)),
+      score: Number(match.score.toFixed(3)),
+      loop: true,
     });
   }
 
