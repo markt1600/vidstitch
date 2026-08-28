@@ -121,16 +121,23 @@ export async function findOverlapCut(
   return { cutAt: tailStart + (bestN - 1) / fps, score: bestScore };
 }
 
+// Two SSIM scores within this margin are treated as equally good matches.
+// Ties happen constantly on static scenes and duplicated frames; when they
+// do, the join that removes MORE footage is preferred.
+export const SCORE_TIE_EPS = 0.005;
+
 async function parseSsimLog(
   log: string,
 ): Promise<{ bestN: number; bestScore: number }> {
   const { readFile } = await import("node:fs/promises");
   const lines = (await readFile(log, "utf8").catch(() => "")).split("\n");
+  // Earliest frame among near-ties wins: an earlier cut in the previous
+  // clip's tail removes more of the duplicated footage.
   let bestN = 0;
   let bestScore = -1;
   for (const line of lines) {
     const m = /n:(\d+)\s.*All:([\d.]+)/.exec(line);
-    if (m && Number(m[2]) > bestScore) {
+    if (m && Number(m[2]) > bestScore + SCORE_TIE_EPS) {
       bestScore = Number(m[2]);
       bestN = Number(m[1]);
     }
@@ -205,33 +212,51 @@ export async function findBestJointMax(
     return parseSsimLog(log);
   };
 
-  const stride = Math.max(1, Math.round(fpsNext / 6));
-  let best = { k: 0, n: 0, score: -1 };
+  // Collect every scan, then pick among near-tied best scores the candidate
+  // that maximises how much gets cut: the LATEST next-clip frame (the scan
+  // itself already prefers the earliest previous-clip frame on ties). So ten
+  // identical opening frames join at the tenth, not the first.
+  const results: { k: number; n: number; score: number }[] = [];
   const tested = new Set<number>();
+  const scanInto = async (k: number) => {
+    const { bestN, bestScore } = await scan(k);
+    tested.add(k);
+    results.push({ k, n: bestN, score: bestScore });
+  };
+  const pick = () => {
+    const maxScore = Math.max(...results.map((r) => r.score));
+    const qualifiers = results.filter(
+      (r) => r.n > 0 && r.score >= maxScore - SCORE_TIE_EPS,
+    );
+    qualifiers.sort((a, b) => b.k - a.k);
+    return { chosen: qualifiers[0], maxScore };
+  };
+
+  const stride = Math.max(1, Math.round(fpsNext / 6));
   for (let k = 0; k < cands.length; k += stride) {
-    const { bestN, bestScore } = await scan(k);
-    tested.add(k);
-    if (bestScore > best.score) best = { k, n: bestN, score: bestScore };
+    await scanInto(k);
   }
-  const span = Math.min(stride - 1, 4);
-  for (
-    let k = Math.max(0, best.k - span);
-    k <= Math.min(cands.length - 1, best.k + span);
-    k++
-  ) {
-    if (tested.has(k)) continue;
-    const { bestN, bestScore } = await scan(k);
-    tested.add(k);
-    if (bestScore > best.score) best = { k, n: bestN, score: bestScore };
+  let { chosen } = pick();
+  if (chosen) {
+    // Refine at full frame resolution around (and just past) the winner —
+    // a later frame inside the skipped stride may tie and cut more.
+    const span = Math.min(stride - 1, 4);
+    const lo = Math.max(0, chosen.k - span);
+    const hi = Math.min(cands.length - 1, chosen.k + Math.max(span, stride - 1));
+    for (let k = lo; k <= hi; k++) {
+      if (!tested.has(k)) await scanInto(k);
+    }
+    chosen = pick().chosen;
   }
 
-  if (best.n === 0 || best.score < MIN_MATCH_SCORE) {
-    return { cutAt: null, nextStart: 0, score: Math.max(0, best.score) };
+  const maxScore = Math.max(0, ...results.map((r) => r.score));
+  if (!chosen || chosen.score < MIN_MATCH_SCORE) {
+    return { cutAt: null, nextStart: 0, score: maxScore };
   }
   return {
-    cutAt: tailStart + (best.n - 1) / fpsPrev,
-    nextStart: best.k / fpsNext,
-    score: best.score,
+    cutAt: tailStart + (chosen.n - 1) / fpsPrev,
+    nextStart: chosen.k / fpsNext,
+    score: chosen.score,
   };
 }
 

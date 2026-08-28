@@ -359,7 +359,7 @@ export default function Home() {
             {stitchMode === "fuzzy"
               ? "Fuzzy: overlapping frames are found by comparison and trimmed so everything lines up. With 2+ files, each clip's first frame is matched against the last 2 seconds of the previous clip. With a single file, the whole video is scanned for discontinuities — wherever a frame doesn't continue from its predecessor but matches (>60%) a frame in the previous 2 seconds, the duplicated segment is spliced out. Slower (the result is re-encoded)."
               : stitchMode === "fuzzy-max"
-                ? "Max fuzzy: every frame in the first second of each clip is scored against the last 3 seconds of the previous clip, and the join happens at the best-matching pair of frames — trimming the previous clip's tail and skipping into the next clip's start as needed. The most accurate line-up, and the slowest."
+                ? "Max fuzzy: every frame in the first second of each clip is scored against the last 3 seconds of the previous clip, and the join happens at the best-matching pair of frames — trimming the previous clip's tail and skipping into the next clip's start as needed. When several joins score equally (static scenes, duplicated frames), the one that cuts out the most footage wins. The most accurate line-up, and the slowest."
                 : "Strict: clips are joined exactly as uploaded, frame for frame."}
           </p>
 
