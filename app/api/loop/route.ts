@@ -7,10 +7,24 @@ import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
 import {
   MAX_TOTAL_BYTES_SERVER,
+  MERGED_PREFIX,
   OUTPUT_PREFIX,
   OUTPUT_RETENTION_MS,
   UPLOAD_PREFIX,
 } from "@/lib/constants";
+
+/**
+ * Loop inputs may be fresh uploads or the outputs of the stitchers (the
+ * Lofi Creator pipeline feeds the merged video and stitched mix straight
+ * in). Still restricted to this app's own blob store.
+ */
+function isLoopSource(url: string): boolean {
+  return (
+    isOwnBlobUrl(url, UPLOAD_PREFIX) ||
+    isOwnBlobUrl(url, MERGED_PREFIX) ||
+    isOwnBlobUrl(url, OUTPUT_PREFIX)
+  );
+}
 import { downloadTo, presignedDownloadUrl, probeMedia, runFfmpeg } from "@/lib/ffmpeg";
 
 export const runtime = "nodejs";
@@ -45,13 +59,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     };
     if (
       typeof body.videoUrl !== "string" ||
-      !isOwnBlobUrl(body.videoUrl, UPLOAD_PREFIX)
+      !isLoopSource(body.videoUrl)
     ) {
       throw new Error();
     }
     videoUrl = body.videoUrl;
     if (typeof body.audioUrl === "string") {
-      if (!isOwnBlobUrl(body.audioUrl, UPLOAD_PREFIX)) throw new Error();
+      if (!isLoopSource(body.audioUrl)) throw new Error();
       audioUrl = body.audioUrl;
     }
     if (body.loops !== undefined) {

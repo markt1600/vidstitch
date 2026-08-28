@@ -7,6 +7,7 @@ import CopyLinkButton from "@/app/copy-link-button";
 import ExtractBox from "@/app/extract-box";
 import GifBox from "@/app/gif-box";
 import ImageBox from "@/app/image-box";
+import LofiBox from "@/app/lofi-box";
 import LoopBox from "@/app/loop-box";
 import ShareBox from "@/app/share-box";
 import StreamerBox from "@/app/streamer-box";
@@ -215,6 +216,7 @@ export default function Home() {
       </header>
 
       <nav className="toolbar" aria-label="Utilities">
+        <a href="#lofi">Lofi Creator</a>
         <a href="#stitcher">Video stitcher</a>
         <a href="#mp3-stitcher">MP3 stitcher</a>
         <a href="#looper">Looper</a>
@@ -231,10 +233,13 @@ export default function Home() {
         view-only protected link, make GIFs, loop a clip (with an optional
         soundtrack laid over it), resize images right in your browser, share
         files through an expiring (optionally password-protected) private
-        link, stitch MP3s into a crossfaded mix, and cut clips out of MP3s.
-        Everything you upload is stored privately, processed, and permanently
-        deleted within 5 minutes — no accounts, no records, no copies.
+        link, stitch MP3s into a crossfaded mix, and cut clips out of MP3s —
+        or run the whole lofi pipeline in one click. Everything you upload is
+        stored privately, processed, and permanently deleted within 5 minutes
+        — no accounts, no records, no copies.
       </p>
+
+      <LofiBox />
 
       <section className="share-section" id="stitcher">
         <h2 className="section-title">Video stitcher</h2>
