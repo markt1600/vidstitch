@@ -125,7 +125,7 @@ export default function ExtractBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="mp3-extractor">
       <h2 className="section-title">MP3 clip extractor</h2>
       <p className="tagline">
         Upload an MP3, choose a start point and duration, and get just that

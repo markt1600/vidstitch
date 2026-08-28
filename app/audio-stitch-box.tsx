@@ -177,7 +177,7 @@ export default function AudioStitchBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="mp3-stitcher">
       <h2 className="section-title">MP3 stitcher</h2>
       <p className="tagline">
         Join up to {MAX_AUDIO_FILES} MP3s into one track. The default is a{" "}

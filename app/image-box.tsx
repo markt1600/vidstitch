@@ -116,7 +116,7 @@ export default function ImageBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="images">
       <h2 className="section-title">
         Image resizer <span className="local-badge">runs in your browser</span>
       </h2>

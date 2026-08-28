@@ -115,7 +115,7 @@ export default function StreamerBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="streamer">
       <h2 className="section-title">Streamer</h2>
       <p className="tagline">
         Share a video that can only be <em>watched</em>, never kept. The link

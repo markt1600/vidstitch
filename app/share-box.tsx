@@ -154,7 +154,7 @@ export default function ShareBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="share">
       <h2 className="section-title">Private file share</h2>
       <p className="tagline">
         Upload any files and get a private link to share. The link&apos;s

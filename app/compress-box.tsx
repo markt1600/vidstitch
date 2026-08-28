@@ -119,7 +119,7 @@ export default function CompressBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="compressor">
       <h2 className="section-title">Video compressor</h2>
       <p className="tagline">
         Shrink an MP4 to fit under a size limit (email, Discord, WhatsApp…).

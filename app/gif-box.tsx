@@ -121,7 +121,7 @@ export default function GifBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="gif">
       <h2 className="section-title">GIF maker</h2>
       <p className="tagline">
         Turn up to {MAX_GIF_SECONDS} seconds of an MP4 into an optimized GIF.

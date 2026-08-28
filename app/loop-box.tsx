@@ -154,7 +154,7 @@ export default function LoopBox() {
   };
 
   return (
-    <section className="share-section">
+    <section className="share-section" id="looper">
       <h2 className="section-title">Looper</h2>
       <p className="tagline">
         Repeat an MP4 back-to-back a chosen number of times — lossless, the

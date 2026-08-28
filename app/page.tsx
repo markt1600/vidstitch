@@ -208,6 +208,18 @@ export default function Home() {
           <span className="ln" />
         </div>
       </header>
+
+      <nav className="toolbar" aria-label="Utilities">
+        <a href="#stitcher">Video stitcher</a>
+        <a href="#compressor">Compressor</a>
+        <a href="#streamer">Streamer</a>
+        <a href="#gif">GIF maker</a>
+        <a href="#looper">Looper</a>
+        <a href="#images">Image resizer</a>
+        <a href="#share">File share</a>
+        <a href="#mp3-stitcher">MP3 stitcher</a>
+        <a href="#mp3-extractor">MP3 extractor</a>
+      </nav>
       <p className="tagline">
         Private, self-destructing tools for quick file jobs: stitch MP4 videos
         into one, compress a video to a target size, stream a video through a
@@ -219,7 +231,7 @@ export default function Home() {
         deleted within 5 minutes — no accounts, no records, no copies.
       </p>
 
-      <section className="share-section">
+      <section className="share-section" id="stitcher">
         <h2 className="section-title">Video stitcher</h2>
         <p className="tagline">
           Merge up to {MAX_FILES} MP4 files into one — or drop a single file in
