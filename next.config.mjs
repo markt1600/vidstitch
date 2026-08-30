@@ -15,6 +15,7 @@ const nextConfig = {
     "/api/compress": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/gif": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/loop": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/speed": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
 };
 

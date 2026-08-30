@@ -10,6 +10,7 @@ import ImageBox from "@/app/image-box";
 import LofiBox from "@/app/lofi-box";
 import LoopBox from "@/app/loop-box";
 import ShareBox from "@/app/share-box";
+import SpeedBox from "@/app/speed-box";
 import StreamerBox from "@/app/streamer-box";
 import {
   formatBytes,
@@ -223,6 +224,7 @@ export default function Home() {
         <a href="#compressor">Compressor</a>
         <a href="#streamer">Streamer</a>
         <a href="#gif">GIF maker</a>
+        <a href="#speed">Speed changer</a>
         <a href="#images">Image resizer</a>
         <a href="#share">File share</a>
         <a href="#mp3-extractor">MP3 extractor</a>
@@ -499,6 +501,8 @@ export default function Home() {
       <StreamerBox />
 
       <GifBox />
+
+      <SpeedBox />
 
       <ImageBox />
 

@@ -45,7 +45,10 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    −1 dBTP — with a "keep original" option; the response reports the gain
    applied per track. Inputs are resampled to 44.1 kHz stereo; output is
    192 kbps MP3.
-10. **Share passwords** — a share can optionally require a password:
+10. **Speed changer** — retime a video from 0.25× to 3× in 0.25 steps:
+    setpts for the frames, chained atempo for the audio so pitch stays
+    natural.
+11. **Share passwords** — a share can optionally require a password:
    a salted SHA-256 hash is stored as a hidden `.password` marker blob
    inside the share folder (inheriting its deletion lifecycle), and the
    share API refuses to mint presigned URLs without the matching password.
