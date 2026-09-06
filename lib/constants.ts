@@ -8,6 +8,16 @@ export const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
 // Server-side re-check allows slight slack over the client cap.
 export const MAX_TOTAL_BYTES_SERVER = 220 * 1024 * 1024;
 
+// The file share never routes bytes through a serverless function (direct
+// browser->Blob uploads, presigned downloads), so its caps are far higher.
+export const MAX_SHARE_FILE_BYTES = 1024 * 1024 * 1024;
+export const MAX_SHARE_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
+
+// The compressor streams its input into ffmpeg straight from a presigned
+// URL — /tmp only ever holds the output — so its input cap is bounded by
+// processing time rather than scratch disk.
+export const COMPRESS_MAX_INPUT_BYTES = 500 * 1024 * 1024;
+
 // How long a merged file may live before it is deleted.
 export const MERGED_RETENTION_MS = 5 * 60 * 1000;
 

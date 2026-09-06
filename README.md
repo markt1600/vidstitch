@@ -4,16 +4,20 @@ A privacy-first web app for Vercel (presented as "File Utilities"), built on
 aggressive, multi-layered deletion so nothing lingers on the server:
 
 1. **MP4 merger** — stitch 2–10 MP4 files into one merged MP4.
-2. **Private file share** — upload up to 10 files of any type and get a
-   `/share/<id>` link to hand out. The ID is an unguessable secret, the
-   download URLs behind it are cryptographically presigned, and after
-   5 minutes the signatures expire and the files are deleted.
+2. **Private file share** — upload up to 10 files of any type (1 GB per
+   file, 2 GB per share — bytes never touch a serverless function) and get
+   a `/share/<id>` link to hand out. The ID is an unguessable secret, the
+   download URLs behind it are cryptographically presigned, and 5 minutes
+   after the last file finishes uploading the signatures expire and the
+   files are deleted.
 3. **MP3 clip extractor** — upload an MP3, give a start point and duration,
    and get just that section back as a new MP3 (lossless frame copy when
    possible, re-encode fallback). The source is deleted the moment
    extraction finishes and the clip self-destructs after 5 minutes.
 4. **Video compressor** — shrink an MP4 to fit a target size (1–190 MB)
    with a two-pass H.264 encode at a bitrate computed from the duration.
+   Inputs up to 500 MB: ffmpeg streams the source from a short-lived
+   presigned URL, so /tmp only holds the output.
 5. **GIF maker** — turn up to 15 s of an MP4 into an optimized GIF
    (palettegen/paletteuse two-stage encode).
 6. **Image resizer** — resize/convert/compress images entirely in the

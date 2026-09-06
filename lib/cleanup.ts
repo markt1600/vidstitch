@@ -46,7 +46,10 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
     [EXTRACT_PREFIX, EXTRACT_RETENTION_MS],
     [OUTPUT_PREFIX, OUTPUT_RETENTION_MS],
     [STREAM_PREFIX, STREAM_RETENTION_MS],
-    [SHARE_PREFIX, SHARE_RETENTION_MS],
+    // Shares get an upload allowance on top of their retention: the expiry
+    // that /api/share enforces is anchored to the newest file, so a slow
+    // multi-gigabyte upload must not have its earlier files swept mid-way.
+    [SHARE_PREFIX, SHARE_RETENTION_MS + UPLOAD_ORPHAN_MS],
     [UPLOAD_PREFIX, UPLOAD_ORPHAN_MS],
   ] as const) {
     let cursor: string | undefined;

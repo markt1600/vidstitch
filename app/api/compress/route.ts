@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { isOwnBlobUrl, sweepExpired } from "@/lib/cleanup";
 import {
+  COMPRESS_MAX_INPUT_BYTES,
   MAX_TOTAL_BYTES_SERVER,
   OUTPUT_PREFIX,
   OUTPUT_RETENTION_MS,
@@ -23,9 +24,12 @@ export const maxDuration = 300;
 
 /**
  * Compresses an uploaded MP4 to fit a target size using a two-pass H.264
- * encode at a bitrate computed from the video's duration. The uploaded
- * source is deleted the moment compression finishes — success or failure —
- * and the result lives 5 minutes.
+ * encode at a bitrate computed from the video's duration. ffmpeg streams
+ * the source straight from a short-lived presigned URL (never revealed to
+ * the client), so the 512 MB /tmp scratch disk only ever holds the output —
+ * which is what lets inputs go up to 500 MB. The uploaded source is deleted
+ * the moment compression finishes — success or failure — and the result
+ * lives 5 minutes.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let url: string;
@@ -63,9 +67,9 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const meta = await head(url, { token: blobToken() });
-    if (meta.size > MAX_TOTAL_BYTES_SERVER) {
+    if (meta.size > COMPRESS_MAX_INPUT_BYTES) {
       return NextResponse.json(
-        { error: "File exceeds the 200 MB limit." },
+        { error: "File exceeds the 500 MB limit." },
         { status: 413 },
       );
     }
@@ -80,8 +84,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const input = path.join(workDir, "input.mp4");
-    await downloadTo(url, input);
+    // Small inputs take the proven path (download to /tmp). Inputs too big
+    // to share /tmp with the output are streamed by ffmpeg straight from a
+    // short-lived presigned URL — never revealed to the client.
+    let input: string;
+    if (meta.size <= MAX_TOTAL_BYTES_SERVER) {
+      input = path.join(workDir, "input.mp4");
+      await downloadTo(url, input);
+    } else {
+      input = await presignedDownloadUrl(meta.pathname, Date.now() + 300_000);
+    }
 
     const info = await probeMedia(input);
     if (info.duration <= 0) {

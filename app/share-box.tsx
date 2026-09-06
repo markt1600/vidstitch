@@ -6,7 +6,11 @@ import {
   formatCountdown,
   uploadPrivate,
 } from "@/lib/client-upload";
-import { MAX_FILE_BYTES, MAX_SHARE_FILES } from "@/lib/constants";
+import {
+  MAX_SHARE_FILE_BYTES,
+  MAX_SHARE_FILES,
+  MAX_SHARE_TOTAL_BYTES,
+} from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "done" | "expired";
 
@@ -40,9 +44,9 @@ export default function ShareBox() {
           setError(`You can share at most ${MAX_SHARE_FILES} files at once.`);
           break;
         }
-        if (file.size > MAX_FILE_BYTES) {
+        if (file.size > MAX_SHARE_FILE_BYTES) {
           setError(
-            `"${file.name}" is larger than the ${formatBytes(MAX_FILE_BYTES)} per-file limit.`,
+            `"${file.name}" is larger than the ${formatBytes(MAX_SHARE_FILE_BYTES)} per-file limit.`,
           );
           continue;
         }
@@ -90,6 +94,12 @@ export default function ShareBox() {
 
   const handleShare = async () => {
     if (files.length === 0) return;
+    if (totalBytes > MAX_SHARE_TOTAL_BYTES) {
+      setError(
+        `Combined size ${formatBytes(totalBytes)} exceeds the ${formatBytes(MAX_SHARE_TOTAL_BYTES)} limit.`,
+      );
+      return;
+    }
     setError(null);
     setPhase("uploading");
     setUploadIndex(0);
@@ -179,8 +189,8 @@ export default function ShareBox() {
           >
             <strong>Drop files here or click to browse</strong>
             <p>
-              Up to {MAX_SHARE_FILES} files · {formatBytes(MAX_FILE_BYTES)} per
-              file · any type
+              Up to {MAX_SHARE_FILES} files · {formatBytes(MAX_SHARE_FILE_BYTES)}{" "}
+              per file · {formatBytes(MAX_SHARE_TOTAL_BYTES)} total · any type
             </p>
             <input
               ref={inputRef}

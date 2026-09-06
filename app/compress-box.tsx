@@ -7,7 +7,7 @@ import {
   uploadPrivate,
 } from "@/lib/client-upload";
 import CopyLinkButton from "@/app/copy-link-button";
-import { MAX_FILE_BYTES } from "@/lib/constants";
+import { COMPRESS_MAX_INPUT_BYTES } from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "compressing" | "done" | "expired";
 
@@ -43,9 +43,9 @@ export default function CompressBox() {
       setError("Only MP4 files are supported here.");
       return;
     }
-    if (candidate.size > MAX_FILE_BYTES) {
+    if (candidate.size > COMPRESS_MAX_INPUT_BYTES) {
       setError(
-        `"${candidate.name}" is larger than the ${formatBytes(MAX_FILE_BYTES)} limit.`,
+        `"${candidate.name}" is larger than the ${formatBytes(COMPRESS_MAX_INPUT_BYTES)} limit.`,
       );
       return;
     }
@@ -97,7 +97,10 @@ export default function CompressBox() {
     setPhase("uploading");
 
     try {
-      const { url } = await uploadPrivate(file, { filename: file.name });
+      const { url } = await uploadPrivate(file, {
+        filename: file.name,
+        kind: "video-large",
+      });
 
       setPhase("compressing");
       const res = await fetch("/api/compress", {
@@ -149,7 +152,7 @@ export default function CompressBox() {
             <p>
               {file
                 ? `${formatBytes(file.size)} — click to choose a different file`
-                : `1 file · ${formatBytes(MAX_FILE_BYTES)} max`}
+                : `1 file · ${formatBytes(COMPRESS_MAX_INPUT_BYTES)} max`}
             </p>
             <input
               ref={inputRef}
@@ -180,8 +183,9 @@ export default function CompressBox() {
             </label>
           </div>
           <p className="field-hint">
-            Common limits: 8 MB (Discord free), 25 MB (email), 100 MB
-            (WhatsApp).
+            Common limits: 8 MB (Discord free), 25 MB (email), 100 MB (WhatsApp).
+            Inputs up to 500 MB; very long videos may exceed the 5-minute
+            processing window.
           </p>
 
           <button

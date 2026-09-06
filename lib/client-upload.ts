@@ -62,7 +62,7 @@ export async function uploadPrivate(
   meta: {
     filename: string;
     shareId?: string;
-    kind?: "video" | "audio" | "audio-any";
+    kind?: "video" | "video-large" | "audio" | "audio-any";
   },
 ): Promise<{ url: string; pathname: string }> {
   const tokenRes = await fetch("/api/upload", {

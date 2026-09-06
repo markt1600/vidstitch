@@ -2,7 +2,9 @@ import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import {
+  COMPRESS_MAX_INPUT_BYTES,
   MAX_FILE_BYTES,
+  MAX_SHARE_FILE_BYTES,
   SHARE_PASSWORD_MARKER,
   SHARE_PREFIX,
   UPLOAD_PREFIX,
@@ -45,7 +47,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   let filename = "file";
   let shareId: string | null = null;
-  let kind: "video" | "audio" | "audio-any" = "video";
+  let kind: "video" | "video-large" | "audio" | "audio-any" = "video";
   try {
     const body = (await request.json()) as {
       filename?: unknown;
@@ -55,7 +57,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (typeof body.filename === "string" && body.filename.trim()) {
       filename = body.filename;
     }
-    if (body.kind === "audio" || body.kind === "audio-any") {
+    if (
+      body.kind === "audio" ||
+      body.kind === "audio-any" ||
+      body.kind === "video-large"
+    ) {
       kind = body.kind;
     }
     if (typeof body.shareId === "string") {
@@ -79,8 +85,8 @@ export async function POST(request: Request): Promise<NextResponse> {
             // The share ID in the path is the unguessable secret; keep the
             // original filename so downloads keep their names.
             pathname: `${SHARE_PREFIX}${shareId}/${safeName}`,
-            maximumSizeInBytes: MAX_FILE_BYTES,
-            validUntil: Date.now() + 15 * 60 * 1000,
+            maximumSizeInBytes: MAX_SHARE_FILE_BYTES,
+            validUntil: Date.now() + 60 * 60 * 1000,
           }
         : {
             token,
@@ -91,9 +97,10 @@ export async function POST(request: Request): Promise<NextResponse> {
                 : kind === "audio-any"
                   ? ["audio/*"]
                   : ["video/mp4"],
-            maximumSizeInBytes: MAX_FILE_BYTES,
+            maximumSizeInBytes:
+              kind === "video-large" ? COMPRESS_MAX_INPUT_BYTES : MAX_FILE_BYTES,
             addRandomSuffix: true,
-            validUntil: Date.now() + 15 * 60 * 1000,
+            validUntil: Date.now() + 60 * 60 * 1000,
           },
     );
     return NextResponse.json({

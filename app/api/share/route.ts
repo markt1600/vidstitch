@@ -68,10 +68,12 @@ export async function GET(request: Request): Promise<NextResponse> {
       );
     }
 
-    const oldest = Math.min(
+    // Anchor the 5 minutes to the NEWEST file: large multi-file uploads can
+    // take a while, and the clock should start when the share is complete.
+    const newest = Math.max(
       ...entries.map((b) => new Date(b.uploadedAt).getTime()),
     );
-    const expiresAt = oldest + SHARE_RETENTION_MS;
+    const expiresAt = newest + SHARE_RETENTION_MS;
     if (Date.now() >= expiresAt) {
       await deleteAll(blobs.map((b) => b.url));
       return NextResponse.json(
