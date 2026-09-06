@@ -118,10 +118,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new Error("Could not read the video's duration.");
     }
 
-    // Split the byte budget between audio and video, with ~4% container
-    // overhead headroom.
+    // Split the byte budget between audio and video. Two-pass hits its
+    // budget precisely (4% headroom); the single-pass ABR used for large
+    // streamed inputs is less exact, so it gets a 10% margin.
     const audioK = info.hasAudio ? (targetMB < 20 ? 96 : 128) : 0;
-    const totalK = (targetBytes * 8 * 0.96) / 1000 / info.duration;
+    const headroom = streamed ? 0.9 : 0.96;
+    const totalK = (targetBytes * 8 * headroom) / 1000 / info.duration;
     const videoK = Math.floor(totalK - audioK);
     if (videoK < 50) {
       await deleteSource();
@@ -153,16 +155,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       "-maxrate", `${Math.floor(videoK * 1.4)}k`,
       "-bufsize", `${videoK * 2}k`,
       "-pix_fmt", "yuv420p",
-      "-passlogfile", passLog,
     ];
-    await runFfmpeg([...common, "-pass", "1", "-an", "-f", "mp4", "/dev/null"]);
-    await runFfmpeg([
-      ...common,
-      "-pass", "2",
-      ...(info.hasAudio ? ["-c:a", "aac", "-b:a", `${audioK}k`] : ["-an"]),
-      "-movflags", "+faststart",
-      output,
-    ]);
+    const audioArgs = info.hasAudio
+      ? ["-c:a", "aac", "-b:a", `${audioK}k`]
+      : ["-an"];
+    if (streamed) {
+      // Large inputs: a single ABR pass — two passes would stream and
+      // encode the whole source twice and blow the 5-minute budget.
+      await runFfmpeg([...common, ...audioArgs, "-movflags", "+faststart", output]);
+    } else {
+      await runFfmpeg([
+        ...common, "-passlogfile", passLog,
+        "-pass", "1", "-an", "-f", "mp4", "/dev/null",
+      ]);
+      await runFfmpeg([
+        ...common, "-passlogfile", passLog,
+        "-pass", "2", ...audioArgs, "-movflags", "+faststart", output,
+      ]);
+    }
 
     const outSize = (await stat(output)).size;
 

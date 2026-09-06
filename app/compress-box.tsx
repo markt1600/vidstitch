@@ -108,7 +108,15 @@ export default function CompressBox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, targetMB }),
       });
-      const data = (await res.json()) as CompressResult & { error?: string };
+      let data: CompressResult & { error?: string };
+      try {
+        data = (await res.json()) as CompressResult & { error?: string };
+      } catch {
+        // A hard function timeout/crash returns plain text, not JSON.
+        throw new Error(
+          "The server ran out of time compressing this video — very long or very large files can exceed the 5-minute processing window. Try again, or use a shorter video or smaller file.",
+        );
+      }
       if (!res.ok) {
         throw new Error(data.error ?? "Compression failed.");
       }
