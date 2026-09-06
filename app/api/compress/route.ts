@@ -118,23 +118,50 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new Error("Could not read the video's duration.");
     }
 
-    // Encode time scales with DURATION, not file size: the function has
-    // ~1 vCPU and a hard 300s ceiling. Strategy tiers by duration:
-    //   ≤ 2.5 min  – two-pass veryfast (most precise size targeting)
-    //   ≤ 5.5 min  – single-pass veryfast
-    //   ≤ 18  min  – single-pass ultrafast, frames capped at 720p
-    //   longer     – rejected up front with a clear message
-    if (info.duration > 18 * 60) {
+    // Encode time follows pixel volume — resolution × framerate × duration —
+    // not file size or duration alone (3 min of 1080p60 outweighs 8 min of
+    // 720p30). Estimate the encode seconds for each strategy against a
+    // measured ~1 vCPU throughput and take the highest-quality one that fits
+    // the budget; downscale and speed up as footage gets heavier.
+    const fps = info.fps > 0 ? info.fps : 30;
+    const framePixels = (cap: number) => {
+      if (info.height <= cap || info.height === 0) {
+        return Math.max(info.width * info.height, 1);
+      }
+      return Math.round((info.width * cap) / info.height) * cap;
+    };
+    const THROUGHPUT: Record<string, number> = {
+      veryfast: 65e6,
+      ultrafast: 170e6,
+    };
+    const ENCODE_BUDGET_S = 200;
+    const encodeSeconds = (p: string, cap: number, passes: number) =>
+      (passes * framePixels(cap) * fps * info.duration) / THROUGHPUT[p];
+
+    let twoPass = false;
+    let preset: "veryfast" | "ultrafast" = "veryfast";
+    let heightCap = 1080;
+    if (encodeSeconds("veryfast", 1080, 2) <= ENCODE_BUDGET_S) {
+      twoPass = true;
+    } else if (encodeSeconds("veryfast", 1080, 1) <= ENCODE_BUDGET_S) {
+      // Single precise pass at full size.
+    } else if (encodeSeconds("veryfast", 720, 1) <= ENCODE_BUDGET_S) {
+      heightCap = 720;
+    } else if (encodeSeconds("ultrafast", 720, 1) <= ENCODE_BUDGET_S) {
+      preset = "ultrafast";
+      heightCap = 720;
+    } else if (encodeSeconds("ultrafast", 480, 1) <= ENCODE_BUDGET_S) {
+      preset = "ultrafast";
+      heightCap = 480;
+    } else {
       await deleteSource();
       return NextResponse.json(
         {
-          error: `This video is ${Math.round(info.duration / 60)} minutes long — compression here maxes out around 18 minutes of footage (the 5-minute serverless processing ceiling).`,
+          error: `This video (${Math.round(info.duration / 60)} min of ${info.width}×${info.height} at ${Math.round(fps)} fps) is more footage than the 5-minute serverless processing ceiling allows, even at reduced quality.`,
         },
         { status: 400 },
       );
     }
-    const twoPass = info.duration <= 150;
-    const preset = info.duration <= 330 ? "veryfast" : "ultrafast";
 
     // Split the byte budget between audio and video. Two-pass hits its
     // budget precisely (4% headroom); single-pass ABR is less exact, so it
@@ -153,10 +180,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Very starved bitrates look better at a smaller frame size; long
-    // videos are also capped at 720p so the ultrafast pass outruns the
-    // function ceiling.
-    const heightCap = preset === "ultrafast" ? 720 : 1080;
+    // Apply the strategy's frame cap; independently, very starved bitrates
+    // look better at a smaller frame size.
     const scaleArgs =
       info.height > heightCap
         ? ["-vf", `scale=-2:${heightCap}`]

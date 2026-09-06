@@ -193,7 +193,9 @@ export default function CompressBox() {
           </div>
           <p className="field-hint">
             Common limits: 8 MB (Discord free), 25 MB (email), 100 MB (WhatsApp).
-            Inputs up to 500 MB and about 18 minutes of footage.
+            Inputs up to 500 MB — heavy footage (long, high-resolution, or
+            high-framerate) is automatically downscaled and encoded faster to
+            fit the processing window.
           </p>
 
           <button
