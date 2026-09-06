@@ -130,9 +130,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
       return Math.round((info.width * cap) / info.height) * cap;
     };
+    // Calibrated pessimistically from production runs: a slow serverless
+    // instance encodes veryfast 720p60 at ~35–50M px/s (one run was killed
+    // at 280s where another took 204s), so the picker must assume the slow
+    // case or heavy jobs fail intermittently.
     const THROUGHPUT: Record<string, number> = {
-      veryfast: 65e6,
-      ultrafast: 170e6,
+      veryfast: 40e6,
+      ultrafast: 90e6,
     };
     const ENCODE_BUDGET_S = 200;
     const encodeSeconds = (p: string, cap: number, passes: number) =>
