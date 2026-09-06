@@ -135,13 +135,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Very starved bitrates look better at a smaller frame size.
-    const scaleArgs =
-      info.height > 1080
+    // Very starved bitrates look better at a smaller frame size. Streamed
+    // (200 MB+) inputs are also capped at 720p: with ~1 vCPU the encode
+    // must run well above real time to fit the 5-minute function ceiling.
+    const scaleArgs = streamed
+      ? info.height > 720
+        ? ["-vf", "scale=-2:720"]
+        : []
+      : info.height > 1080
         ? ["-vf", "scale=-2:1080"]
         : videoK < 500 && info.height > 720
           ? ["-vf", "scale=-2:720"]
           : [];
+    const preset = streamed ? "ultrafast" : "veryfast";
 
     const output = path.join(workDir, "compressed.mp4");
     const passLog = path.join(workDir, "ffpass");
@@ -150,7 +156,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       ...inputArgs,
       ...scaleArgs,
       "-c:v", "libx264",
-      "-preset", "veryfast",
+      "-preset", preset,
       "-b:v", `${videoK}k`,
       "-maxrate", `${Math.floor(videoK * 1.4)}k`,
       "-bufsize", `${videoK * 2}k`,

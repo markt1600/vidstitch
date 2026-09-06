@@ -7,7 +7,10 @@ import {
   uploadPrivate,
 } from "@/lib/client-upload";
 import CopyLinkButton from "@/app/copy-link-button";
-import { COMPRESS_MAX_INPUT_BYTES } from "@/lib/constants";
+import {
+  COMPRESS_MAX_INPUT_BYTES,
+  MAX_TOTAL_BYTES,
+} from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "compressing" | "done" | "expired";
 
@@ -215,7 +218,9 @@ export default function CompressBox() {
               <div className="progress-label">
                 {phase === "uploading"
                   ? "Uploading your file…"
-                  : "Compressing — two encoding passes, this takes a while…"}
+                  : file && file.size > MAX_TOTAL_BYTES
+                    ? "Compressing — large file, single streamed pass…"
+                    : "Compressing — two encoding passes, this takes a while…"}
               </div>
               <div className="progress-bar">
                 <div className="progress-fill indeterminate" style={{ width: "100%" }} />
