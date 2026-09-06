@@ -88,12 +88,30 @@ export async function POST(request: Request): Promise<NextResponse> {
     // to share /tmp with the output are streamed by ffmpeg straight from a
     // short-lived presigned URL — never revealed to the client.
     let input: string;
+    let streamed = false;
     if (meta.size <= MAX_TOTAL_BYTES_SERVER) {
       input = path.join(workDir, "input.mp4");
       await downloadTo(url, input);
     } else {
-      input = await presignedDownloadUrl(meta.pathname, Date.now() + 300_000);
+      // Valid well past the function's own lifetime: both encode passes read
+      // the source, and an expiring signature mid-read looks like EOF to
+      // ffmpeg and silently truncates the output.
+      input = await presignedDownloadUrl(
+        meta.pathname,
+        Date.now() + 30 * 60 * 1000,
+      );
+      streamed = true;
     }
+    // Resume interrupted HTTP reads instead of treating them as EOF.
+    const inputArgs = streamed
+      ? [
+          "-reconnect", "1",
+          "-reconnect_streamed", "1",
+          "-reconnect_on_network_error", "1",
+          "-reconnect_delay_max", "5",
+          "-i", input,
+        ]
+      : ["-i", input];
 
     const info = await probeMedia(input);
     if (info.duration <= 0) {
@@ -127,7 +145,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const passLog = path.join(workDir, "ffpass");
     const common = [
       "-hide_banner", "-loglevel", "error", "-y",
-      "-i", input,
+      ...inputArgs,
       ...scaleArgs,
       "-c:v", "libx264",
       "-preset", "veryfast",
@@ -147,6 +165,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     ]);
 
     const outSize = (await stat(output)).size;
+
+    // A truncated source read makes ffmpeg finish "successfully" with a
+    // short video — turn that into a visible error, never a silent one.
+    const outInfo = await probeMedia(output);
+    if (outInfo.duration < info.duration * 0.98) {
+      throw new Error(
+        `The compressed video came out shorter than the source (${Math.round(outInfo.duration)}s of ${Math.round(info.duration)}s) — the source stream was interrupted. Please try again.`,
+      );
+    }
 
     // The uploaded source is gone the moment the compressed copy exists.
     await deleteSource();
