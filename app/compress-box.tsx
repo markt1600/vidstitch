@@ -7,10 +7,7 @@ import {
   uploadPrivate,
 } from "@/lib/client-upload";
 import CopyLinkButton from "@/app/copy-link-button";
-import {
-  COMPRESS_MAX_INPUT_BYTES,
-  MAX_TOTAL_BYTES,
-} from "@/lib/constants";
+import { COMPRESS_MAX_INPUT_BYTES } from "@/lib/constants";
 
 type Phase = "idle" | "uploading" | "compressing" | "done" | "expired";
 
@@ -137,8 +134,9 @@ export default function CompressBox() {
       <h2 className="section-title">Video compressor</h2>
       <p className="tagline">
         Shrink an MP4 to fit under a size limit (email, Discord, WhatsApp…).
-        Two-pass encode targets your exact size. Source deleted on completion;
-        the result self-destructs after 5 minutes.
+        Short videos get a precise two-pass encode; long ones a fast single
+        pass. Source deleted on completion; the result self-destructs after 5
+        minutes.
       </p>
 
       {(phase === "idle" || busy) && (
@@ -195,8 +193,7 @@ export default function CompressBox() {
           </div>
           <p className="field-hint">
             Common limits: 8 MB (Discord free), 25 MB (email), 100 MB (WhatsApp).
-            Inputs up to 500 MB; very long videos may exceed the 5-minute
-            processing window.
+            Inputs up to 500 MB and about 18 minutes of footage.
           </p>
 
           <button
@@ -218,9 +215,7 @@ export default function CompressBox() {
               <div className="progress-label">
                 {phase === "uploading"
                   ? "Uploading your file…"
-                  : file && file.size > MAX_TOTAL_BYTES
-                    ? "Compressing — large file, single streamed pass…"
-                    : "Compressing — two encoding passes, this takes a while…"}
+                  : "Compressing — this can take a few minutes…"}
               </div>
               <div className="progress-bar">
                 <div className="progress-fill indeterminate" style={{ width: "100%" }} />

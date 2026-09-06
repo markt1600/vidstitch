@@ -118,11 +118,29 @@ export async function POST(request: Request): Promise<NextResponse> {
       throw new Error("Could not read the video's duration.");
     }
 
+    // Encode time scales with DURATION, not file size: the function has
+    // ~1 vCPU and a hard 300s ceiling. Strategy tiers by duration:
+    //   ≤ 2.5 min  – two-pass veryfast (most precise size targeting)
+    //   ≤ 5.5 min  – single-pass veryfast
+    //   ≤ 18  min  – single-pass ultrafast, frames capped at 720p
+    //   longer     – rejected up front with a clear message
+    if (info.duration > 18 * 60) {
+      await deleteSource();
+      return NextResponse.json(
+        {
+          error: `This video is ${Math.round(info.duration / 60)} minutes long — compression here maxes out around 18 minutes of footage (the 5-minute serverless processing ceiling).`,
+        },
+        { status: 400 },
+      );
+    }
+    const twoPass = info.duration <= 150;
+    const preset = info.duration <= 330 ? "veryfast" : "ultrafast";
+
     // Split the byte budget between audio and video. Two-pass hits its
-    // budget precisely (4% headroom); the single-pass ABR used for large
-    // streamed inputs is less exact, so it gets a 10% margin.
+    // budget precisely (4% headroom); single-pass ABR is less exact, so it
+    // gets a 10% margin.
     const audioK = info.hasAudio ? (targetMB < 20 ? 96 : 128) : 0;
-    const headroom = streamed ? 0.9 : 0.96;
+    const headroom = twoPass ? 0.96 : 0.9;
     const totalK = (targetBytes * 8 * headroom) / 1000 / info.duration;
     const videoK = Math.floor(totalK - audioK);
     if (videoK < 50) {
@@ -135,19 +153,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Very starved bitrates look better at a smaller frame size. Streamed
-    // (200 MB+) inputs are also capped at 720p: with ~1 vCPU the encode
-    // must run well above real time to fit the 5-minute function ceiling.
-    const scaleArgs = streamed
-      ? info.height > 720
-        ? ["-vf", "scale=-2:720"]
-        : []
-      : info.height > 1080
-        ? ["-vf", "scale=-2:1080"]
+    // Very starved bitrates look better at a smaller frame size; long
+    // videos are also capped at 720p so the ultrafast pass outruns the
+    // function ceiling.
+    const heightCap = preset === "ultrafast" ? 720 : 1080;
+    const scaleArgs =
+      info.height > heightCap
+        ? ["-vf", `scale=-2:${heightCap}`]
         : videoK < 500 && info.height > 720
           ? ["-vf", "scale=-2:720"]
           : [];
-    const preset = streamed ? "ultrafast" : "veryfast";
 
     const output = path.join(workDir, "compressed.mp4");
     const passLog = path.join(workDir, "ffpass");
@@ -165,11 +180,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const audioArgs = info.hasAudio
       ? ["-c:a", "aac", "-b:a", `${audioK}k`]
       : ["-an"];
-    if (streamed) {
-      // Large inputs: a single ABR pass — two passes would stream and
-      // encode the whole source twice and blow the 5-minute budget.
-      await runFfmpeg([...common, ...audioArgs, "-movflags", "+faststart", output]);
-    } else {
+    if (twoPass) {
       await runFfmpeg([
         ...common, "-passlogfile", passLog,
         "-pass", "1", "-an", "-f", "mp4", "/dev/null",
@@ -178,6 +189,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         ...common, "-passlogfile", passLog,
         "-pass", "2", ...audioArgs, "-movflags", "+faststart", output,
       ]);
+    } else {
+      // Longer videos: a single ABR pass — two passes would read and encode
+      // everything twice and blow the 5-minute budget.
+      await runFfmpeg([...common, ...audioArgs, "-movflags", "+faststart", output]);
     }
 
     const outSize = (await stat(output)).size;
