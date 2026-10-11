@@ -133,14 +133,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Calibrated pessimistically from production runs: a slow serverless
     // instance encodes veryfast 720p60 at ~35–50M px/s (one run was killed
     // at 280s where another took 204s), so the picker must assume the slow
-    // case or heavy jobs fail intermittently.
+    // case or heavy jobs fail intermittently. Decoding costs time too —
+    // 4K HEVC camera/iPhone MOVs especially — so each pass also charges
+    // the input's full pixel volume against a decode throughput.
     const THROUGHPUT: Record<string, number> = {
       veryfast: 40e6,
       ultrafast: 90e6,
     };
+    const DECODE_THROUGHPUT = 250e6;
     const ENCODE_BUDGET_S = 200;
+    const inPixels = Math.max(info.width * info.height, 1);
     const encodeSeconds = (p: string, cap: number, passes: number) =>
-      (passes * framePixels(cap) * fps * info.duration) / THROUGHPUT[p];
+      passes *
+      ((framePixels(cap) * fps * info.duration) / THROUGHPUT[p] +
+        (inPixels * fps * info.duration) / DECODE_THROUGHPUT);
 
     let twoPass = false;
     let preset: "veryfast" | "ultrafast" = "veryfast";

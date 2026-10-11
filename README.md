@@ -14,10 +14,14 @@ aggressive, multi-layered deletion so nothing lingers on the server:
    and get just that section back as a new MP3 (lossless frame copy when
    possible, re-encode fallback). The source is deleted the moment
    extraction finishes and the clip self-destructs after 5 minutes.
-4. **Video compressor** — shrink an MP4 to fit a target size (1–190 MB)
-   with a two-pass H.264 encode at a bitrate computed from the duration.
-   Inputs up to 500 MB: ffmpeg streams the source from a short-lived
-   presigned URL, so /tmp only holds the output.
+4. **Video compressor** — shrink an MP4 or MOV (output is always MP4) to
+   fit a target size (1–190 MB). Strategy is picked from the footage's
+   pixel volume (resolution × fps × duration, decode cost included)
+   against a pessimistic ~1 vCPU throughput model: two-pass veryfast when
+   it fits, degrading through single-pass and 720p/480p ultrafast tiers,
+   or a clear up-front rejection. Inputs up to 500 MB: ffmpeg streams
+   200 MB+ sources from a short-lived presigned URL, so /tmp only holds
+   the output.
 5. **GIF maker** — turn up to 15 s of an MP4 into an optimized GIF
    (palettegen/paletteuse two-stage encode).
 6. **Image resizer** — resize/convert/compress images entirely in the

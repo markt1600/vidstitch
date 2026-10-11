@@ -19,8 +19,12 @@ interface CompressResult {
   compressedBytes: number;
 }
 
-function isMp4(file: File): boolean {
-  return file.type === "video/mp4" || file.name.toLowerCase().endsWith(".mp4");
+function isCompressibleVideo(file: File): boolean {
+  return (
+    file.type === "video/mp4" ||
+    file.type === "video/quicktime" ||
+    /\.(mp4|mov)$/i.test(file.name)
+  );
 }
 
 export default function CompressBox() {
@@ -39,8 +43,8 @@ export default function CompressBox() {
     setError(null);
     const candidate = Array.from(incoming)[0];
     if (!candidate) return;
-    if (!isMp4(candidate)) {
-      setError("Only MP4 files are supported here.");
+    if (!isCompressibleVideo(candidate)) {
+      setError("Only MP4 and MOV files are supported here.");
       return;
     }
     if (candidate.size > COMPRESS_MAX_INPUT_BYTES) {
@@ -133,10 +137,10 @@ export default function CompressBox() {
     <section className="share-section" id="compressor">
       <h2 className="section-title">Video compressor</h2>
       <p className="tagline">
-        Shrink an MP4 to fit under a size limit (email, Discord, WhatsApp…).
-        Short videos get a precise two-pass encode; long ones a fast single
-        pass. Source deleted on completion; the result self-destructs after 5
-        minutes.
+        Shrink an MP4 or MOV to fit under a size limit (email, Discord,
+        WhatsApp…). Short videos get a precise two-pass encode; long ones a
+        fast single pass. MOV comes out as MP4. Source deleted on completion;
+        the result self-destructs after 5 minutes.
       </p>
 
       {(phase === "idle" || busy) && (
@@ -156,7 +160,7 @@ export default function CompressBox() {
             }}
           >
             <strong>
-              {file ? file.name : "Drop an MP4 here or click to browse"}
+              {file ? file.name : "Drop an MP4 or MOV here or click to browse"}
             </strong>
             <p>
               {file
@@ -166,7 +170,7 @@ export default function CompressBox() {
             <input
               ref={inputRef}
               type="file"
-              accept="video/mp4,.mp4"
+              accept="video/mp4,video/quicktime,.mp4,.mov"
               hidden
               disabled={busy}
               onChange={(e) => {

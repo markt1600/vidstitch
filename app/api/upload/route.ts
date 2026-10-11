@@ -96,7 +96,9 @@ export async function POST(request: Request): Promise<NextResponse> {
                 ? ["audio/mpeg", "audio/mp3"]
                 : kind === "audio-any"
                   ? ["audio/*"]
-                  : ["video/mp4"],
+                  : kind === "video-large"
+                    ? ["video/mp4", "video/quicktime"]
+                    : ["video/mp4"],
             maximumSizeInBytes:
               kind === "video-large" ? COMPRESS_MAX_INPUT_BYTES : MAX_FILE_BYTES,
             addRandomSuffix: true,
