@@ -1,4 +1,24 @@
 import { put } from "@vercel/blob/client";
+import { SHARE_ID_ALPHABET, SHARE_ID_LENGTH } from "./constants";
+
+/** Short, case-sensitive share ID, drawn with rejection sampling so every
+ * character of the alphabet is equally likely. */
+export function generateShareId(): string {
+  const chars: string[] = [];
+  while (chars.length < SHARE_ID_LENGTH) {
+    const buf = new Uint8Array(SHARE_ID_LENGTH * 2);
+    crypto.getRandomValues(buf);
+    for (const byte of buf) {
+      if (chars.length >= SHARE_ID_LENGTH) break;
+      // Reject bytes beyond the largest multiple of the alphabet size to
+      // keep the distribution uniform.
+      if (byte < 256 - (256 % SHARE_ID_ALPHABET.length)) {
+        chars.push(SHARE_ID_ALPHABET[byte % SHARE_ID_ALPHABET.length]);
+      }
+    }
+  }
+  return chars.join("");
+}
 
 export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;

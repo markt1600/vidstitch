@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   formatBytes,
   formatCountdown,
+  generateShareId,
   uploadPrivate,
 } from "@/lib/client-upload";
 import {
@@ -104,7 +105,7 @@ export default function ShareBox() {
     setPhase("uploading");
     setUploadIndex(0);
 
-    const id = crypto.randomUUID();
+    const id = generateShareId();
     const pw = password.trim();
     try {
       for (let i = 0; i < files.length; i++) {

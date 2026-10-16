@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { blobToken } from "@/lib/blob-token";
 import { sweepExpired } from "@/lib/cleanup";
 import {
+  SHARE_ID_RE,
   SHARE_PASSWORD_MARKER,
   SHARE_PREFIX,
   SHARE_RETENTION_MS,
@@ -13,12 +14,10 @@ import { presignedDownloadUrl } from "@/lib/ffmpeg";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const SHARE_ID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 function shareIdFrom(request: Request): string | null {
   const id = new URL(request.url).searchParams.get("id");
-  return id && SHARE_ID_RE.test(id) ? id.toLowerCase() : null;
+  // Share IDs are case-sensitive.
+  return id && SHARE_ID_RE.test(id) ? id : null;
 }
 
 /** Salted with the share ID so identical passwords hash differently per share. */
@@ -141,7 +140,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 },
       );
     }
-    const id = body.id.toLowerCase();
+    const id = body.id;
     await put(
       `${SHARE_PREFIX}${id}/${SHARE_PASSWORD_MARKER}`,
       hashPassword(id, body.password),

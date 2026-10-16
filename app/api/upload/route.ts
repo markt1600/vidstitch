@@ -5,15 +5,13 @@ import {
   COMPRESS_MAX_INPUT_BYTES,
   MAX_FILE_BYTES,
   MAX_SHARE_FILE_BYTES,
+  SHARE_ID_RE,
   SHARE_PASSWORD_MARKER,
   SHARE_PREFIX,
   UPLOAD_PREFIX,
 } from "@/lib/constants";
 
 export const runtime = "nodejs";
-
-const SHARE_ID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Mints a short-lived, single-pathname client token so the browser can PUT
@@ -68,7 +66,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       if (!SHARE_ID_RE.test(body.shareId)) {
         return NextResponse.json({ error: "Invalid share ID" }, { status: 400 });
       }
-      shareId = body.shareId.toLowerCase();
+      shareId = body.shareId;
     }
   } catch {
     // Fall through with defaults.

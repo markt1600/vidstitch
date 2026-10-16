@@ -61,3 +61,12 @@ export const STREAM_PREFIX = "streams/";
 
 // Name of the hidden marker blob that stores a share's password hash.
 export const SHARE_PASSWORD_MARKER = ".password";
+
+// Share IDs are short for easy sharing: 5 case-sensitive alphanumerics
+// (62^5 ≈ 916M combinations). The ID is the link's secret, so this trades
+// some guessing resistance for shareability — acceptable for links that
+// live minutes; the password option covers sensitive shares.
+export const SHARE_ID_LENGTH = 5;
+export const SHARE_ID_ALPHABET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+export const SHARE_ID_RE = /^[A-Za-z0-9]{5}$/;
