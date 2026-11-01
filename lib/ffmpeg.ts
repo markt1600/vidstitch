@@ -499,10 +499,15 @@ export async function downloadTo(url: string, dest: string): Promise<void> {
 /**
  * Creates a presigned GET URL for a private blob whose signature expires at
  * `validUntil` — the download link dies at the same moment the file does.
+ * With `download` (the default), a download=1 param makes browsers save the
+ * file instead of displaying it inline (text files, images, videos would
+ * otherwise open in the tab); the param is outside the signed payload, so
+ * appending it is safe.
  */
 export async function presignedDownloadUrl(
   pathname: string,
   validUntil: number,
+  download = true,
 ): Promise<string> {
   const signed = await issueSignedToken({
     token: blobToken(),
@@ -515,5 +520,5 @@ export async function presignedDownloadUrl(
     pathname,
     access: "private",
   });
-  return presignedUrl;
+  return download ? `${presignedUrl}&download=1` : presignedUrl;
 }

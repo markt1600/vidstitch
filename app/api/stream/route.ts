@@ -62,6 +62,7 @@ export async function GET(request: Request): Promise<Response> {
     const upstreamUrl = await presignedDownloadUrl(
       video.pathname,
       Date.now() + 60_000,
+      false,
     );
     const range = request.headers.get("range");
     const upstream = await fetch(upstreamUrl, {

@@ -99,6 +99,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       input = await presignedDownloadUrl(
         meta.pathname,
         Date.now() + 30 * 60 * 1000,
+        false,
       );
       streamed = true;
     }
