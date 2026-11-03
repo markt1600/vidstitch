@@ -23,7 +23,9 @@ export function generateShareId(): string {
 export function formatBytes(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
-  return `${(bytes / 1024).toFixed(0)} KB`;
+  // Small files must never read as "0 KB" — that looks like data loss.
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${bytes} B`;
 }
 
 export function formatCountdown(ms: number): string {
@@ -85,6 +87,14 @@ export async function uploadPrivate(
     kind?: "video" | "video-large" | "audio" | "audio-any";
   },
 ): Promise<{ url: string; pathname: string }> {
+  // A 0-byte read usually means a cloud-drive placeholder (OneDrive/Google
+  // Drive/iCloud file not yet synced locally) — uploading it would "turn the
+  // file into 0 KB". Refuse up front with an explanation instead.
+  if (file.size === 0) {
+    throw new Error(
+      `"${meta.filename}" reads as 0 bytes. If it lives in a cloud drive (OneDrive, Google Drive, iCloud), open it once so it downloads to this device, then try again.`,
+    );
+  }
   const tokenRes = await fetch("/api/upload", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
