@@ -59,6 +59,19 @@ export const EXTRACT_PREFIX = "extracts/";
 export const OUTPUT_PREFIX = "outputs/";
 export const STREAM_PREFIX = "streams/";
 
+// CopyPaste: admin-only rich-text snippets. Each paste's expiry is encoded
+// in its blob pathname — pastes/<expiresAtMs>-<p|o>-<id>.json ("p" = password
+// protected) — so sweeps can enforce per-paste lifetimes without reading
+// blob contents.
+export const PASTE_PREFIX = "pastes/";
+export const PASTE_MAX_BYTES = 1024 * 1024;
+export const PASTE_MIN_TTL_MS = 60 * 1000;
+export const PASTE_DEFAULT_TTL_MS = 5 * 60 * 1000;
+export const PASTE_MAX_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+export const PASTE_ID_RE = /^[A-Za-z0-9]{10}$/;
+export const PASTE_NAME_RE =
+  /^pastes\/(\d{1,16})-([po])-([A-Za-z0-9]{10})\.json$/;
+
 // Name of the hidden marker blob that stores a share's password hash.
 export const SHARE_PASSWORD_MARKER = ".password";
 

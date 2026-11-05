@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import AudioStitchBox from "@/app/audio-stitch-box";
 import CompressBox from "@/app/compress-box";
 import CopyLinkButton from "@/app/copy-link-button";
+import CopyPasteBox from "@/app/copypaste-box";
 import ExtractBox from "@/app/extract-box";
 import GifBox from "@/app/gif-box";
 import ImageBox from "@/app/image-box";
@@ -227,6 +228,7 @@ export default function Home() {
         <a href="#speed">Speed changer</a>
         <a href="#images">Image resizer</a>
         <a href="#share">File share</a>
+        <a href="#copypaste">CopyPaste</a>
         <a href="#mp3-extractor">MP3 extractor</a>
       </nav>
       <p className="tagline">
@@ -507,6 +509,8 @@ export default function Home() {
       <ImageBox />
 
       <ShareBox />
+
+      <CopyPasteBox />
 
       <ExtractBox />
 

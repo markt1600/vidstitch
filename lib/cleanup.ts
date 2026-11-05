@@ -7,6 +7,9 @@ import {
   MERGED_RETENTION_MS,
   OUTPUT_PREFIX,
   OUTPUT_RETENTION_MS,
+  PASTE_MAX_TTL_MS,
+  PASTE_NAME_RE,
+  PASTE_PREFIX,
   STREAM_PREFIX,
   STREAM_RETENTION_MS,
   SHARE_PREFIX,
@@ -57,6 +60,33 @@ export async function sweepExpired(): Promise<{ deleted: number }> {
       const page = await list({ prefix, cursor, limit: 1000, token: blobToken() });
       for (const blob of page.blobs) {
         if (now - new Date(blob.uploadedAt).getTime() > maxAgeMs) {
+          expired.push(blob.url);
+        }
+      }
+      cursor = page.cursor;
+    } while (cursor);
+  }
+
+  // CopyPaste snippets carry their own expiry in the pathname
+  // (pastes/<expiresAtMs>-<p|o>-<id>.json), so each one is deleted at its
+  // individual deadline. A malformed name, or anything older than the
+  // 1-week ceiling regardless of what its name claims, is deleted too.
+  {
+    let cursor: string | undefined;
+    do {
+      const page = await list({
+        prefix: PASTE_PREFIX,
+        cursor,
+        limit: 1000,
+        token: blobToken(),
+      });
+      for (const blob of page.blobs) {
+        const m = blob.pathname.match(PASTE_NAME_RE);
+        if (
+          !m ||
+          now >= Number(m[1]) ||
+          now - new Date(blob.uploadedAt).getTime() > PASTE_MAX_TTL_MS
+        ) {
           expired.push(blob.url);
         }
       }
