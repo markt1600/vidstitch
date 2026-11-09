@@ -108,6 +108,7 @@ export default function CopyPasteBox() {
   const [copied, setCopied] = useState(false);
   const [, setTick] = useState(0);
   const editorRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const checkAuth = useCallback(async () => {
     setAuthState("checking");
@@ -240,12 +241,35 @@ export default function CopyPasteBox() {
     setOpen((prev) => (prev?.id === id ? null : prev));
   };
 
+  // Selection-based copy of the rendered snippet: works in every browser
+  // and keeps formatting, used when the async clipboard API is missing or
+  // refuses. Returns false only if even execCommand fails.
+  const copyBySelection = (): boolean => {
+    const el = contentRef.current;
+    if (!el) return false;
+    const selection = window.getSelection();
+    if (!selection) return false;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    selection.removeAllRanges();
+    return ok;
+  };
+
   const copyOpen = async (plain: boolean) => {
     if (!open) return;
     const html = sanitizeHtml(open.html);
     const temp = document.createElement("div");
     temp.innerHTML = html;
     const text = temp.textContent ?? "";
+    let ok = false;
     try {
       if (!plain && typeof ClipboardItem !== "undefined") {
         await navigator.clipboard.write([
@@ -257,9 +281,17 @@ export default function CopyPasteBox() {
       } else {
         await navigator.clipboard.writeText(text);
       }
+      ok = true;
+    } catch {
+      // Clipboard API unavailable or denied — fall back to selecting the
+      // rendered text and copying that.
+      ok = copyBySelection();
+    }
+    if (ok) {
+      setError(null);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       setError("Clipboard copy failed — select the text and copy manually.");
     }
   };
@@ -446,16 +478,17 @@ export default function CopyPasteBox() {
                 </button>
               </div>
               <div
+                ref={contentRef}
                 className="paste-content"
                 // Sanitized through the whitelist above before rendering.
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(open.html) }}
               />
               <div className="result-actions">
                 <button className="btn btn-primary" style={{ width: "auto", marginTop: 0 }} onClick={() => void copyOpen(false)}>
-                  {copied ? "Copied ✓" : "Copy"}
+                  {copied ? "Copied ✓" : "Copy all"}
                 </button>
                 <button className="btn btn-secondary" onClick={() => void copyOpen(true)}>
-                  Copy as plain text
+                  Copy all as plain text
                 </button>
                 <button className="btn btn-danger" onClick={() => void deletePaste(open.id)}>
                   Delete now
